@@ -1,6 +1,7 @@
 import shelve
 import csv
 from itertools import zip_longest
+from os.path import basename
 
 from classes import *
 
@@ -25,35 +26,49 @@ def add_from_file(file):
     """
    
     with open(file, 'r') as csvfile:
-        reader = csv.reader(csvfile)
-        
+        reader = csv.DictReader(csvfile)
+
         for row in reader:
-            part_num = row[0]
-            speed = row[1]
-            brand = row[2]
-            connector = row[3]
-            capacity = row[4]
-            description = row[5]
-            do_not_sub = row[6]
-            subbed = row[7]
-            
-            if do_not_sub == "TRUE":
-                do_not_sub = True
-            elif do_not_sub == "FALSE":
-                do_not_sub = False
+
+            if row["do_not_sub"] == "TRUE":
+                row["do_not_sub"] = True
+            elif row["do_not_sub"] == "FALSE":
+                row["do_not_sub"] = False
                 
-            if subbed == "TRUE":
-                subbed = True
-            elif subbed == "FALSE":
-                subbed = False
+            if row["subbed"] == "TRUE":
+                row["subbed"] = True
+            elif row["subbed"] == "FALSE":
+                row["subbed"] = False
             
-            if file == "MEM.csv":
-                add_part(part_num, Memory(part_num, speed, brand, connector, capacity, description, do_not_sub, subbed))
-            elif file == "HDD.csv":
+            if basename(file) == "MEM.csv":
+                add_part(row["part_num"], Memory(row["part_num"], row["speed"],
+                                                row["brand"], row["connector"], 
+                                                row["capacity"], row["description"], 
+                                                row["do_not_sub"], row["subbed"]))
+            elif basename(file) == "HDD.csv":
+                if row["type"] == "SSD":                  
+                    add_part(row["part_num"], SolidStateDrive(row["part_num"], row["brand"], 
+                                                        row["description"], row["connector"], 
+                                                        row["ssd_capacity"], row["physical_size"], 
+                                                        row["interface"], row["do_not_sub"], 
+                                                        row["subbed"]))
+                elif row["type"] == "SSHD":
+                    add_part(row["part_num"], HybridDrive(row["part_num"], row["brand"], 
+                                                    row["description"], row["connector"], 
+                                                    row["hdd_capacity"], row["ssd_capacity"],
+                                                    row["speed"], row["physical_size"], 
+                                                    row["height"], row["interface"], 
+                                                    row["do_not_sub"], row["subbed"]))
+                else:
+                    add_part(row["part_num"], Harddrive(row["part_num"], row["brand"], 
+                                                    row["description"], row["connector"], 
+                                                    row["hdd_capacity"], row["speed"], 
+                                                    row["physical_size"], row["height"], 
+                                                    row["interface"], row["do_not_sub"], 
+                                                    row["subbed"]))                
+            elif basename(file) == "CPU.csv":
                 pass
-            elif file == "CPU.csv":
-                pass
-  
+                               
   
 def delete_part(part):
     """
@@ -78,7 +93,7 @@ def show_part(part):
     
     try:
         with shelve.open("partsdb") as db:
-            print(db[part])
+            return db[part]
     except KeyError:
         print(part, "does not exist in the database.")
         
@@ -131,7 +146,7 @@ def purge():
         for record in db:
             del db[record]
 
-
+'''
 while True:
     COMMANDS = ["add", "del", "show", "sub", "list", "import", "purge db", "help"]
     
@@ -160,3 +175,4 @@ while True:
         add_from_file(target)
     elif command.lower() == "purge":
         purge()
+'''        
