@@ -2,12 +2,14 @@
 class Harddrive:
     """Class to create objects for harddrives."""
     
-    def __init__(self, part_num, brand, description, connector, capacity, speed, physical_size, height, interface, do_not_sub, subbed):
+    def __init__(self, part_num, brand, description, connector, hdd_capacity, speed,
+                physical_size, height, interface, do_not_sub, subbed):
+                
         self.part_num = part_num
         self.brand = brand
         self.description = description     
         self.connector = connector
-        self.capacity = capacity
+        self.hdd_capacity = hdd_capacity
         self.speed = speed
         self.physical_size = physical_size
         self.height = height
@@ -17,14 +19,16 @@ class Harddrive:
 
     
     def __str__(self):
-        return self.part_num + " | " + self.brand + " | " + self.description
+        return (self.brand + " | " + self.part_num + " | " + self.hdd_capacity + "GB | " +
+                self.speed + "RPM")
+    
     
     def __eq__(self, other):
         if (isinstance(other, Harddrive)
             and self.physical_size == other.physical_size
             and self.height == other.height
             and self.connector == other.connector):
-            return (self.capacity == other.capacity 
+            return (self.hdd_capacity == other.hdd_capacity 
                 and self.speed == other.speed 
                 and self.interface == other.interface)            
 
@@ -34,7 +38,7 @@ class Harddrive:
             and self.physical_size == other.physical_size
             and self.height == other.height
             and self.connector == other.connector):
-            return (self.capacity != other.capacity 
+            return (self.hdd_capacity != other.hdd_capacity 
                 and self.speed != other.speed 
                 and self.interface != other.interface)            
            
@@ -42,18 +46,40 @@ class Harddrive:
 class SolidStateDrive(Harddrive):
     """Class to create objects for SSDs."""
     
-    def __init__(self, part_num, brand, description, connector, capacity, physical_size, interface, do_not_sub, subbed):
+    def __init__(self, part_num, brand, description, connector, ssd_capacity, physical_size, 
+                interface, do_not_sub, subbed):
+                
         self.part_num = part_num
         self.brand = brand
         self.description = description
         self.connector = connector
-        self.capacity = capacity
+        self.ssd_capacity = ssd_capacity
         self.physical_size = physical_size
         self.interface = interface
         self.do_not_sub = do_not_sub
         self.subbed = subbed
-            
-            
+
+        
+class HybridDrive():
+    """Class to creat objects for SSD/HD hybrids."""
+    
+    def __init__(self, part_num, brand, description, connector, hdd_capacity, ssd_capacity, speed,
+                physical_size, height, interface, do_not_sub, subbed):
+                
+        self.part_num = part_num
+        self.brand = brand
+        self.description = description     
+        self.connector = connector
+        self.hdd_capacity = hdd_capacity
+        self.ssd_capacity = ssd_capacity
+        self.speed = speed
+        self.physical_size = physical_size
+        self.height = height
+        self.interface = interface
+        self.do_not_sub = do_not_sub
+        self.subbed = subbed            
+
+        
 class Processor:
     """Class to create objects for CPUs."""
     
@@ -85,15 +111,19 @@ class Memory:
         self.description = description
         self.do_not_sub = do_not_sub
         self.subbed = subbed
-        
+    
+    
     def __str__(self):
-        return self.brand + " | " + self.part_num + " | " + self.capacity + " | " + self.speed + " | " + self.description    
-        
+        return (self.brand + " | " + self.part_num + " | " + self.capacity + " | " +
+                self.speed + " | " + self.description)
+     
+     
     def __eq__(self, other):
         if isinstance(other, Memory) and self.connector == other.connector:
             return (self.capacity == other.capacity 
                 and self.speed == other.speed) 
-            
+     
+     
     def __ne__(self, other):
         if isinstance(other, Memory) and self.connector == other.connector:
             return (self.capacity != other.capacity 
