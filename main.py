@@ -1,10 +1,18 @@
+from classes import *
+
 import shelve
 import csv
 from itertools import zip_longest
 from os.path import basename
 
-from classes import *
 
+def part_in_db(part):
+    try:
+        with shelve.open("partsdb", "r") as db:
+            db[part]
+        return True
+    except KeyError:
+        return False
 
 def add_part(part, data):
     """
@@ -14,8 +22,9 @@ def add_part(part, data):
     :param data: Object with all relevant part data. 
     """
     
-    with shelve.open("partsdb") as db:
-        db[part] = data
+    if not part_in_db(part):
+        with shelve.open("partsdb", writeback=True) as db:
+            db[part] = data
 
 
 def add_from_file(file):
@@ -77,11 +86,8 @@ def delete_part(part):
     :param part: Part number to be removed as string.
     """
     
-    try:
-        with shelve.open("partsdb") as db:
-            del db[part]
-    except KeyError:
-        print(part, "does not exist in the database.")
+    with shelve.open("partsdb", writeback=True) as db:
+        del db[part]
      
      
 def show_part(part):
@@ -90,13 +96,10 @@ def show_part(part):
     
     :param part:  Part number to be printed as a string.
     """
-    
-    try:
-        with shelve.open("partsdb") as db:
-            return db[part]
-    except KeyError:
-        print(part, "does not exist in the database.")
-        
+
+    with shelve.open("partsdb", "r") as db:
+        return db[part]
+
         
 def can_sub(part, other):
     """
@@ -108,14 +111,11 @@ def can_sub(part, other):
     :return: Boolean
     """
     
-    try:
-        with shelve.open("partsdb") as db:
-            if db[part].do_not_sub == True:
-                return False
-            else:
-                return db[part] == db[other]
-    except KeyError:
-        print("One of the provided part numbers does not exist in the database.")        
+    with shelve.open("partsdb", "r") as db:
+        if db[part].do_not_sub == True:
+            return False
+        else:
+            return db[part] == db[other]
 
         
 def list_subs(part):
@@ -126,23 +126,22 @@ def list_subs(part):
         subs for.
     """
     
-    subs = [["Part #", "Capacity", "Speed", "Connector"]]
+    subs = []
     
-    with shelve.open("partsdb") as db:
+    with shelve.open("partsdb", "r") as db:
         for record in db:
             if type(db[record]) == type(db[part]) and can_sub(part, record):
-                subs.append([record, db[record].capacity, db[record].speed, db[record].connector])
-    
-    widths = [max(len(s) for s in x) for x in zip_longest(*subs, fillvalue="")]
-    
-    for sub in subs:
-        print("".join(word.ljust(w + 2) for word, w in zip(sub, widths)))
+                subs.append(record)
         
-    
+    widths = [max(len(s) for s in x) for x in zip_longest(*subs, fillvalue="")]
+        
+    return subs
+        
+        
 def purge():
     """Removes all parts from the database."""
     
-    with shelve.open("partsdb") as db:
+    with shelve.open("partsdb", writeback=True) as db:
         for record in db:
             del db[record]
 
