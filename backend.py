@@ -10,7 +10,7 @@ def create_connection():
     :return: Connection object or None
     """
     try:
-        conn = sqlite3.connect("parts.db")
+        conn = sqlite3.connect(r"db\parts.db")
         return conn
     except Error as e:
         print(e)
@@ -19,12 +19,28 @@ def create_connection():
     
 
 def close_connection(conn):    
-    """Close database connection to the SQLite3 database."""
+    """
+    Close database connection to the SQLite3 database.
+    
+    :param conn: Connection object
+    """
     try:
         conn.commit()
         conn.close()
     except Erro as e:
         print(e)   
+    
+
+def part_in_db(conn, table, part):
+    """
+    Checks to see if part exists in the database.
+    
+    :param part: Part number to check
+    :return: True or False
+    """
+    cur = conn.cursor()
+    cur.execute("SELECT count(*) FROM " + table + " WHERE part_num = ?", (part,))
+    return cur.fetchone()[0]
     
     
 def create_table(conn, create_table_sql):
@@ -36,8 +52,8 @@ def create_table(conn, create_table_sql):
     :return:
     """
     try:
-        c = conn.cursor()
-        c.execute(create_table_sql)
+        cur = conn.cursor()
+        cur.execute(create_table_sql)
     except Error as e:
         print(e)
             
@@ -54,9 +70,10 @@ def import_from_csv(file):
         table = basename(file).lower()[:3]
         with open(file, "r") as csvfile:
             reader = csv.DictReader(csvfile)
-            headers = next(reader)
+            headers = [header for header,value in next(reader).items()]
+            headers[0] = "part_num PRIMARY KEY"
             
-            create_table(conn, "CREATE TABLE IF NOT EXISTS " + table + " (" + ",".join(headers.keys()) + ");")
+            create_table(conn, "CREATE TABLE IF NOT EXISTS " + table + "(" + ",".join(headers) + ");")
             
             to_import = [list(row.values()) for row in reader]
             
@@ -69,7 +86,7 @@ def import_from_csv(file):
 
             cur = conn.cursor()
             columns = ["?" for item in headers]
-            cur.executemany("INSERT INTO " + table + " VALUES (" + ",".join(columns) + ")", to_import)
+            cur.executemany("INSERT OR IGNORE INTO " + table + " VALUES (" + ",".join(columns) + ")", to_import)
             
             close_connection(conn)
     else:
@@ -85,3 +102,4 @@ def purge():
     tables = ["mem"]
     for table in tables:
         cur.execute("DROP TABLE '" + table + "'")
+
