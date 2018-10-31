@@ -35,6 +35,8 @@ def part_in_db(conn, table, part):
     """
     Checks to see if part exists in the database.
     
+    :param conn: Connection object
+    :param table: Name of database table
     :param part: Part number to check
     :return: True or False
     """
@@ -70,12 +72,14 @@ def import_from_csv(file):
         table = basename(file).lower()[:3]
         with open(file, "r") as csvfile:
             reader = csv.DictReader(csvfile)
-            headers = [header for header,value in next(reader).items()]
+            first_row = next(reader)
+            headers = [header for header,value in first_row.items()]
             headers[0] = "part_num PRIMARY KEY"
             
             create_table(conn, "CREATE TABLE IF NOT EXISTS " + table + "(" + ",".join(headers) + ");")
             
             to_import = [list(row.values()) for row in reader]
+            to_import.append(list(first_row.values()))
             
             for list_item in to_import:
                 for item in list_item:
@@ -91,8 +95,25 @@ def import_from_csv(file):
             close_connection(conn)
     else:
         print("Error! Unable to connect to the database.")
-     
-     
+    
+    
+def search_part(table, part):
+    """
+    Returns part info if part is in database.
+    
+    :param conn: Connection object
+    :param table: Name of database table
+    :param part: Part number
+    :return: Part info
+    """
+    conn = create_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM " + table + " WHERE part_num = ?", (part,))
+    result = cur.fetchone()
+    close_connection(conn)
+    return result    
+    
+    
 def purge():
     """
     Purge all records from SQLite3 database.
@@ -102,4 +123,3 @@ def purge():
     tables = ["mem"]
     for table in tables:
         cur.execute("DROP TABLE '" + table + "'")
-
