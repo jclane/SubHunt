@@ -31,7 +31,7 @@ def close_connection(conn):
         print(e)   
     
 
-def part_in_db(conn, table, part):
+def part_in_db(conn, table, part_num):
     """
     Checks to see if part exists in the database.
     
@@ -41,7 +41,8 @@ def part_in_db(conn, table, part):
     :return: True or False
     """
     cur = conn.cursor()
-    cur.execute("SELECT count(*) FROM " + table + " WHERE part_num = ?", (part,))
+    sql = "SELECT count(*) FROM " + table + " WHERE part_num = ?"
+    cur.execute(sql, (part_num,)) 
     return cur.fetchone()[0]
     
     
@@ -60,6 +61,49 @@ def create_table(conn, create_table_sql):
         print(e)
             
 
+def add_part(table, part_info):
+    """
+    Adds part to the SQLite3 database.
+    
+    :param table: Name of database table
+    :param part: part_info to add
+    :return: "Done" 
+    """
+    conn = create_connection()
+    if conn is not None:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM " + table + ";")
+        columns = ["?" for list in cur.description]  
+        sql = "INSERT OR IGNORE INTO " + table + " VALUES (" + ",".join(columns) + ");"
+        cur.execute(sql, part_info)
+        close_connection(conn)
+        return "Done"
+    else:
+        print("Error! Unable to connect to the database.")    
+    
+            
+def remove_part(table, part_num):
+    """
+    Removes a part from the SQLite3 databse.
+    
+    :param table: Name of database table
+    :param part: Part to remove
+    :return: "Done" or None
+    """
+    conn = create_connection()
+    if conn is not None:
+        if part_in_db(conn, table, part_num):
+            cur = conn.cursor()
+            sql = "DELETE FROM " + table + " WHERE part_num = ?"
+            cur.execute(sql, (part_num,))
+            close_connection(conn)
+            return "Done"
+        else:
+            return None
+    else:
+        print("Error! Unable to connect to the database.")
+        
+    
 def import_from_csv(file):
     """
     Import lines from file into SQLite3 database.
@@ -104,22 +148,34 @@ def search_part(table, part):
     :param conn: Connection object
     :param table: Name of database table
     :param part: Part number
-    :return: Part info
+    :return: Part info or None
     """
     conn = create_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM " + table + " WHERE part_num = ?", (part,))
-    result = cur.fetchone()
-    close_connection(conn)
-    return result    
     
-    
+    if conn is not None:
+        cur = conn.cursor()
+        
+        if part_in_db(conn, table, part):
+            cur.execute("SELECT * FROM " + table + " WHERE part_num = ?", (part,))
+            result = cur.fetchone()
+            close_connection(conn)
+            return result    
+        else:
+            return None
+    else:
+        print("Error! Unable to connect to the database.")        
+
+            
 def purge():
     """
     Purge all records from SQLite3 database.
     """
     conn = create_connection()
-    cur = conn.cursor()
-    tables = ["mem"]
-    for table in tables:
-        cur.execute("DROP TABLE '" + table + "'")
+    
+    if conn is not None:
+        cur = conn.cursor()
+        tables = ["mem"]
+        for table in tables:
+            cur.execute("DROP TABLE '" + table + "'")
+    else:
+        print("Error! Unable to connect to the database.")
