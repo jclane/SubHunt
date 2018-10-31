@@ -179,3 +179,4 @@ def purge():
             cur.execute("DROP TABLE '" + table + "'")
     else:
         print("Error! Unable to connect to the database.")
+        
