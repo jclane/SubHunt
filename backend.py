@@ -173,7 +173,7 @@ def list_subs(table, part_num):
             results = [list(filter(None, lst)) for lst in cur.fetchall()]
             return results
         if table == "mem":
-            sql = "SELECT brand, part_num, connector, capacity, speed FROM " \
+            sql = "SELECT brand, part_num, connector, capacity, speed FROM " + \
                     table + " WHERE (brand = 'GPC' OR brand = ?) AND \
                     connector = ? AND capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
             cur.execute(sql, (part["brand"], part["connector"], part["capacity"], part["speed"]))
@@ -194,7 +194,22 @@ def list_subs(table, part_num):
         print("Error! Unable to connect to the database.")
         
     pass
-        
+
+
+def is_valid_sub(table, part_num, other_part_num):
+    """
+    Calls list_subs and then checks in other_part_num is 
+    in the list of subs returns.
+    
+    :param table: Name of database table
+    :param part_num: Part number as string
+    :param other_part_num: Part number to check as string
+    :return: True or False
+    """
+    subs = list_subs(table, part_num)
+    return any(lst[1] == other_part_num for lst in subs)
+    
+     
 def remove_table(table):
     """
     Remove table from SQLite3 database.
@@ -246,4 +261,3 @@ def import_from_csv(file):
     else:
         print("Error! Unable to connect to the database.")
     
-
