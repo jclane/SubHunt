@@ -30,6 +30,21 @@ def close_connection(conn):
     except Erro as e:
         print(e)   
     
+ 
+def create_table(conn, create_table_sql):
+    """
+    Create a table from the create_table_sql statement.
+    
+    :param conn: Connection object
+    :param create_table_sql: a CREATE TABLE statement
+    :return:
+    """
+    try:
+        cur = conn.cursor()
+        cur.execute(create_table_sql)
+    except Error as e:
+        print(e)
+
 
 def part_in_db(conn, table, part_num):
     """
@@ -45,21 +60,31 @@ def part_in_db(conn, table, part_num):
     cur.execute(sql, (part_num,)) 
     return cur.fetchone()[0]
     
-    
-def create_table(conn, create_table_sql):
+
+def search_part(table, part):
     """
-    Create a table from the create_table_sql statement.
+    Returns part info if part is in database.
     
     :param conn: Connection object
-    :param create_table_sql: a CREATE TABLE statement
-    :return:
+    :param table: Name of database table
+    :param part: Part number
+    :return: Part info or None
     """
-    try:
+    conn = create_connection()
+    
+    if conn is not None:
         cur = conn.cursor()
-        cur.execute(create_table_sql)
-    except Error as e:
-        print(e)
-            
+        
+        if part_in_db(conn, table, part):
+            cur.execute("SELECT * FROM " + table + " WHERE part_num = ?", (part,))
+            result = cur.fetchone()
+            close_connection(conn)
+            return result    
+        else:
+            return None
+    else:
+        print("Error! Unable to connect to the database.")        
+
 
 def add_part(table, part_info):
     """
@@ -102,7 +127,79 @@ def remove_part(table, part_num):
             return None
     else:
         print("Error! Unable to connect to the database.")
+
+
+def convert_to_dict(table, part_num):  # DO I NEED THIS?
+    """
+    Gets row data of part_num from table and
+    converts it to a dict.
+    
+    :param table: Name of database table
+    :param part_num: Part number as string
+    :return: Record of part_num
+    """
+    conn = create_connection()
+    if conn is not None:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM " + table + ";")
+        headers = [list[0] for list in cur.description]
+        part_info = search_part(table, part_num)        
+        part_dict = dict(zip(headers, part_info))
+        close_connection(conn)
+        return part_dict
+    else:
+        print("Error! Unable to connect the database.")
+
         
+def is_valid_sub(table, part_num):
+    """
+    Compares to parts to see if they are valid subs.
+    
+    :param table: Name of database table
+    :param part_num: Part number as string
+    :return: List of valid subs for part_num
+    """
+    
+    def generate_sql(table, part):
+        if table == "hdd":
+            sql = "SELECT brand, part_num, type, physical_size, height, connector, hdd_capacity, ssd_capacity, speed FROM " + table + " WHERE type = ? AND brand = ? AND physical_size = ? AND height = ? AND connector = ? AND hdd_capacity = ? AND ssd_capacity = ? AND speed = ?"
+            cur.execute(sql, (part["type"], part["brand"], part["physical_size"], part["height"], part["connector"], part["hdd_capacity"], part["ssd_capacity"], part["speed"],))
+            results = [list(filter(None, lst)) for lst in cur.fetchall()]
+            return results
+        if table == "mem":
+            pass
+            
+        if table == "cpu":
+            pass
+    
+    conn = create_connection()
+    
+    if conn is not None:
+        cur = conn.cursor()           
+        part_one_dict = convert_to_dict(table, part_one)
+        #part_two_dict = convert_to_dict(table, part_two)        
+        subs = generate_sql(table, part_one_dict)        
+        close_connection(conn)
+        return subs        
+    else:
+        print("Error! Unable to connect to the database.")
+        
+    pass
+        
+def remove_table(table):
+    """
+    Remove table from SQLite3 database.
+    
+    :param table:  Table to be removed
+    """
+    conn = create_connection()
+    
+    if conn is not None:
+        cur = conn.cursor()
+        cur.execute("DROP TABLE " + table)
+    else:
+        print("Error! Unable to connect to the database.")
+     
     
 def import_from_csv(file):
     """
@@ -113,7 +210,7 @@ def import_from_csv(file):
     conn = create_connection()
     
     if conn is not None:
-        table = basename(file).lower()[:3]
+        table = basename(file).lower()[:-4]
         with open(file, "r") as csvfile:
             reader = csv.DictReader(csvfile)
             first_row = next(reader)
@@ -140,43 +237,4 @@ def import_from_csv(file):
     else:
         print("Error! Unable to connect to the database.")
     
-    
-def search_part(table, part):
-    """
-    Returns part info if part is in database.
-    
-    :param conn: Connection object
-    :param table: Name of database table
-    :param part: Part number
-    :return: Part info or None
-    """
-    conn = create_connection()
-    
-    if conn is not None:
-        cur = conn.cursor()
-        
-        if part_in_db(conn, table, part):
-            cur.execute("SELECT * FROM " + table + " WHERE part_num = ?", (part,))
-            result = cur.fetchone()
-            close_connection(conn)
-            return result    
-        else:
-            return None
-    else:
-        print("Error! Unable to connect to the database.")        
 
-            
-def purge():
-    """
-    Purge all records from SQLite3 database.
-    """
-    conn = create_connection()
-    
-    if conn is not None:
-        cur = conn.cursor()
-        tables = ["mem"]
-        for table in tables:
-            cur.execute("DROP TABLE '" + table + "'")
-    else:
-        print("Error! Unable to connect to the database.")
-        
