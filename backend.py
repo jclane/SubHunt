@@ -46,6 +46,21 @@ def create_table(conn, create_table_sql):
         print(e)
 
 
+def remove_table(table):
+    """
+    Remove table from SQLite3 database.
+    
+    :param table:  Table to be removed
+    """
+    conn = create_connection()
+    
+    if conn is not None:
+        cur = conn.cursor()
+        cur.execute("DROP TABLE " + table)
+    else:
+        print("Error! Unable to connect to the database.")
+        
+        
 def part_in_db(conn, table, part_num):
     """
     Checks to see if part exists in the database.
@@ -97,6 +112,17 @@ def add_part(table, part_info):
     conn = create_connection()
     if conn is not None:
         cur = conn.cursor()
+        if table == "hdd":
+            headers = ["part_num PRIMARY KEY", "brand", "connector", "hdd_capacity", \
+                    "ssd_capacity", "speed", "type", "physical_size", "height", \
+                    "interface", "description", "do_not_sub", "subbed"]
+        if table == "mem" or table == "mem_test":
+            headers = ["part_num PRIMARY KEY", "speed", "brand", "connector", \
+                    "capacity", "description", "do_not_sub", "subbed"]
+        if table == "cpu":
+            headers = ["part_num PRIMARY KEY", "brand", "description", "oem_part_num", \
+                    "do_not_sub", "subbed"]
+        create_table(conn, "CREATE TABLE IF NOT EXISTS " + table + "(" + ",".join(headers) + ");")
         cur.execute("SELECT * FROM " + table + ";")
         columns = ["?" for list in cur.description]  
         sql = "INSERT OR IGNORE INTO " + table + " VALUES (" + ",".join(columns) + ");"
@@ -129,7 +155,7 @@ def remove_part(table, part_num):
         print("Error! Unable to connect to the database.")
 
 
-def convert_to_dict(table, part_num):  # DO I NEED THIS?
+def convert_to_dict(table, part_num):
     """
     Gets row data of part_num from table and
     converts it to a dict.
@@ -159,42 +185,40 @@ def list_subs(table, part_num):
     :param part_num: Part number as string
     :return: List of subs for part_num
     """
+    conn = create_connection()
     
-    def generate_sql(table, part):
+    if conn is not None:
+        cur = conn.cursor()           
+        part_dict = convert_to_dict(table, part_num)      
         if table == "hdd":
             sql = "SELECT brand, part_num, type, physical_size, height, connector, \
                     hdd_capacity, ssd_capacity, speed FROM " + table + \
                     " WHERE (brand = 'CVO' OR brand = ?) AND type = ? AND physical_size = ? \
                     AND height = ? AND connector = ? AND hdd_capacity = ? \
                     AND ssd_capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
-            cur.execute(sql, (part["brand"], part["type"], part["physical_size"], \
-                        part["height"], part["connector"], part["hdd_capacity"], \
-                        part["ssd_capacity"], part["speed"]))
+            cur.execute(sql, (part_dict["brand"], part_dict["type"], part_dict["physical_size"], \
+                        part_dict["height"], part_dict["connector"], part_dict["hdd_capacity"], \
+                        part_dict["ssd_capacity"], part_dict["speed"]))
             results = [list(filter(None, lst)) for lst in cur.fetchall()]
             return results
         if table == "mem":
             sql = "SELECT brand, part_num, connector, capacity, speed FROM " + \
                     table + " WHERE (brand = 'GPC' OR brand = ?) AND \
                     connector = ? AND capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
-            cur.execute(sql, (part["brand"], part["connector"], part["capacity"], part["speed"]))
+            cur.execute(sql, (part_dict["brand"], part_dict["connector"], part_dict["capacity"], part_dict["speed"]))
             results = cur.fetchall()
             return results
         if table == "cpu":
-            pass
-    
-    conn = create_connection()
-    
-    if conn is not None:
-        cur = conn.cursor()           
-        part_dict = convert_to_dict(table, part_num)      
-        subs = generate_sql(table, part_dict)        
+            sql = "SELECT brand, part_num, oem_part_num, description, FROM " + \
+                    table + " WHERE (brand = 'GPC' or brand = ?) AND \
+                    oem_part_num = ? AND do_not_sub = 'FALSE'"
+            cur.execute(sql, (part_dict["brand"], part_dict["oem_part_num"]))
+            results = cur.fetchall()     
         close_connection(conn)
-        return subs        
+        return results        
     else:
         print("Error! Unable to connect to the database.")
         
-    pass
-
 
 def is_valid_sub(table, part_num, other_part_num):
     """
@@ -209,22 +233,7 @@ def is_valid_sub(table, part_num, other_part_num):
     subs = list_subs(table, part_num)
     return any(lst[1] == other_part_num for lst in subs)
     
-     
-def remove_table(table):
-    """
-    Remove table from SQLite3 database.
-    
-    :param table:  Table to be removed
-    """
-    conn = create_connection()
-    
-    if conn is not None:
-        cur = conn.cursor()
-        cur.execute("DROP TABLE " + table)
-    else:
-        print("Error! Unable to connect to the database.")
-     
-    
+              
 def import_from_csv(file):
     """
     Import lines from file into SQLite3 database.
