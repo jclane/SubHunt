@@ -151,24 +151,34 @@ def convert_to_dict(table, part_num):  # DO I NEED THIS?
         print("Error! Unable to connect the database.")
 
         
-def is_valid_sub(table, part_num):
+def list_subs(table, part_num):
     """
     Compares to parts to see if they are valid subs.
     
     :param table: Name of database table
     :param part_num: Part number as string
-    :return: List of valid subs for part_num
+    :return: List of subs for part_num
     """
     
     def generate_sql(table, part):
         if table == "hdd":
-            sql = "SELECT brand, part_num, type, physical_size, height, connector, hdd_capacity, ssd_capacity, speed FROM " + table + " WHERE type = ? AND brand = ? AND physical_size = ? AND height = ? AND connector = ? AND hdd_capacity = ? AND ssd_capacity = ? AND speed = ?"
-            cur.execute(sql, (part["type"], part["brand"], part["physical_size"], part["height"], part["connector"], part["hdd_capacity"], part["ssd_capacity"], part["speed"],))
+            sql = "SELECT brand, part_num, type, physical_size, height, connector, \
+                    hdd_capacity, ssd_capacity, speed FROM " + table + \
+                    " WHERE (brand = 'CVO' OR brand = ?) AND type = ? AND physical_size = ? \
+                    AND height = ? AND connector = ? AND hdd_capacity = ? \
+                    AND ssd_capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
+            cur.execute(sql, (part["brand"], part["type"], part["physical_size"], \
+                        part["height"], part["connector"], part["hdd_capacity"], \
+                        part["ssd_capacity"], part["speed"]))
             results = [list(filter(None, lst)) for lst in cur.fetchall()]
             return results
         if table == "mem":
-            pass
-            
+            sql = "SELECT brand, part_num, connector, capacity, speed FROM " \
+                    table + " WHERE (brand = 'GPC' OR brand = ?) AND \
+                    connector = ? AND capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
+            cur.execute(sql, (part["brand"], part["connector"], part["capacity"], part["speed"]))
+            results = cur.fetchall()
+            return results
         if table == "cpu":
             pass
     
@@ -176,9 +186,8 @@ def is_valid_sub(table, part_num):
     
     if conn is not None:
         cur = conn.cursor()           
-        part_one_dict = convert_to_dict(table, part_one)
-        #part_two_dict = convert_to_dict(table, part_two)        
-        subs = generate_sql(table, part_one_dict)        
+        part_dict = convert_to_dict(table, part_num)      
+        subs = generate_sql(table, part_dict)        
         close_connection(conn)
         return subs        
     else:
