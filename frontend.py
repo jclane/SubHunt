@@ -1,10 +1,6 @@
 from backend import *
 
 import tkinter as tk
-from tkinter import filedialog
-from tkinter import messagebox
-from tkinter import simpledialog
-from tkinter import DISABLED
 
 
 def import_list():
