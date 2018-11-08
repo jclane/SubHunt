@@ -376,11 +376,10 @@ class AddPartPage(tk.Frame):
                                         variable = subbed_var, offvalue = False, 
                                         onvalue = True, anchor = "w")
             subbed_check.grid(column = 1, row = 8, sticky = "NSEW")
-            
+
             def add_it():               
-                part_info = (part_num_box.get(), speed_box.get(), 
-                            brand_var.get(), connector_var.get(),
-                            capacity_box.get(), description_box.get(),
+                part_info = (part_num_box.get(), brand_var.get(), 
+                            description_box.get(), oem_box.get(),
                             do_not_sub_var.get(), subbed_var.get())
                 add_part("cpu", part_info)   
             
