@@ -192,7 +192,7 @@ def list_subs(table, part_num):
         part_dict = convert_to_dict(table, part_num)      
         if table == "hdd":
             sql = "SELECT brand, part_num, type, physical_size, height, connector, \
-                    hdd_capacity, ssd_capacity, speed FROM " + table + \
+                    hdd_capacity, ssd_capacity, speed, subbed FROM " + table + \
                     " WHERE (brand = 'CVO' OR brand = ?) AND type = ? AND physical_size = ? \
                     AND height = ? AND connector = ? AND hdd_capacity = ? \
                     AND ssd_capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
@@ -202,14 +202,14 @@ def list_subs(table, part_num):
             results = [list(filter(None, lst)) for lst in cur.fetchall()]
             return results
         if table == "mem":
-            sql = "SELECT brand, part_num, connector, capacity, speed FROM " + \
+            sql = "SELECT brand, part_num, connector, capacity, speed, subbed FROM " + \
                     table + " WHERE (brand = 'GPC' OR brand = ?) AND \
                     connector = ? AND capacity = ? AND speed = ? AND do_not_sub = 'FALSE'"
             cur.execute(sql, (part_dict["brand"], part_dict["connector"], part_dict["capacity"], part_dict["speed"]))
             results = cur.fetchall()
             return results
         if table == "cpu":
-            sql = "SELECT brand, part_num, oem_part_num, description, FROM " + \
+            sql = "SELECT brand, part_num, oem_part_num, description, subbed FROM " + \
                     table + " WHERE (brand = 'GPC' or brand = ?) AND \
                     oem_part_num = ? AND do_not_sub = 'FALSE'"
             cur.execute(sql, (part_dict["brand"], part_dict["oem_part_num"]))
