@@ -5,6 +5,8 @@ Originally I was using a MS Access database to keep track of various PC parts cu
 ## Nov. 8 2018
 Most functions have been implemented.  I need to improve error handling and the aesthetics of the UI.
 
-
-## Oct. 18 2018
+### Oct. 18 2018
 The limitations of shelve became apparent as the application was developed enough to actually become useful.  Most of the original backend code has been scrapped and SQLite3 is being implemented.
+
+### Oct. 17 2018
+Initial upload.
