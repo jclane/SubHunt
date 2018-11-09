@@ -54,14 +54,18 @@ def remove_table(table):
     """
     conn = create_connection()
 
-    if conn is not None:
-        cur = conn.cursor()
-        cur.execute("DROP TABLE " + table)
-    else:
-        print("Error! Unable to connect to the database.")
+    try:
+        if conn is not None:
+            cur = conn.cursor()
+            cur.execute("DROP TABLE IF EXISTS " + table)
+            return True
+        else:
+            raise OperationalError
+    except OperationalError as e:
+        return e
 
 
-def part_in_db(conn, table, part_num):
+def part_in_db(table, part_num):
     """
     Checks to see if part exists in the database.
 
@@ -70,6 +74,7 @@ def part_in_db(conn, table, part_num):
     :param part: Part number to check
     :return: True or False
     """
+    conn = create_connection()
     cur = conn.cursor()
     sql = "SELECT count(*) FROM " + table + " WHERE part_num = ?"
     cur.execute(sql, (part_num,))
@@ -90,7 +95,7 @@ def search_part(table, part):
     if conn is not None:
         cur = conn.cursor()
 
-        if part_in_db(conn, table, part):
+        if part_in_db(table, part):
             cur.execute("SELECT * FROM " + table + " WHERE part_num = ?",
                         (part,))
             result = cur.fetchone()
@@ -147,8 +152,10 @@ def remove_part(table, part_num):
     """
     conn = create_connection()
     if conn is not None:
-        if part_in_db(conn, table, part_num):
+        if part_in_db(table, part_num):
             cur = conn.cursor()
+            cur.execute("SELECT * FROM " + table + ";")
+            columns = ["?" for list in cur.description]
             sql = "DELETE FROM " + table + " WHERE part_num = ?"
             cur.execute(sql, (part_num,))
             close_connection(conn)
@@ -181,6 +188,24 @@ def convert_to_dict(table, part_num):
         print("Error! Unable to connect the database.")
 
 
+def update_part(table, part_info):
+    """
+    Update part info in database.
+
+    :param table:
+    :param part_info:
+    """
+    conn = create_connection()
+    if conn is not None:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM " + table + ";")
+        columns = ["?" for list in cur.description]
+        sql = "UPDATE " + table + " SET (" + \
+              ",".join(columns) + ") = (" + ",".join(part_info) + \
+              ") WHERE part_num = ?"
+        cur.execute(sql, part_info[0])
+
+
 def list_subs(table, part_num):
     """
     Compares to parts to see if they are valid subs.
@@ -195,18 +220,35 @@ def list_subs(table, part_num):
         cur = conn.cursor()
         part_dict = convert_to_dict(table, part_num)
         if table == "hdd":
-            sql = "SELECT brand, part_num, type, physical_size, height, \
-                   connector, hdd_capacity, ssd_capacity, speed, subbed \
-                   FROM " + table + " WHERE (brand = 'CVO' OR brand = ?) \
-                   AND type = ? AND physical_size = ? AND height = ? \
-                   AND connector = ? AND hdd_capacity = ? \
-                   AND ssd_capacity = ? AND speed = ? \
-                   AND do_not_sub = 'FALSE'"
-            cur.execute(sql, (part_dict["brand"], part_dict["type"],
-                              part_dict["physical_size"], part_dict["height"],
-                              part_dict["connector"],
-                              part_dict["hdd_capacity"],
-                              part_dict["ssd_capacity"], part_dict["speed"]))
+            if part_dict["connector"] == "m.2":
+                sql = "SELECT brand, part_num, type, physical_size, \
+                       connector, ssd_capacity, subbed FROM " + table + \
+                       " WHERE (brand = 'CVO' OR brand = ?) \
+                       AND type = ? AND physical_size = ? AND connector = ? \
+                       AND ssd_capacity = ? AND do_not_sub = 'FALSE' \
+                       AND interface like ?"
+                values = (part_dict["brand"], part_dict["type"],
+                                    part_dict["physical_size"],
+                                    part_dict["connector"],
+                                    part_dict["ssd_capacity"],
+                                    part_dict["interface"][:1] + "%")
+
+            else:
+                sql = "SELECT brand, part_num, type, physical_size, height, \
+                       connector, hdd_capacity, ssd_capacity, speed, subbed \
+                       FROM " + table + " WHERE (brand = 'CVO' OR brand = ?) \
+                       AND type = ? AND physical_size = ? AND height = ? \
+                       AND connector = ? AND hdd_capacity = ? \
+                       AND ssd_capacity = ? AND speed = ? \
+                       AND do_not_sub = 'FALSE'"
+                values = (part_dict["brand"], part_dict["type"],
+                                  part_dict["physical_size"],
+                                  part_dict["height"],
+                                  part_dict["connector"],
+                                  part_dict["hdd_capacity"],
+                                  part_dict["ssd_capacity"],
+                                  part_dict["speed"])
+            cur.execute(sql, values)
             results = [list(filter(None, lst)) for lst in cur.fetchall()]
             return results
         if table == "mem":
