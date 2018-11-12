@@ -200,10 +200,13 @@ def update_part(table, part_info):
         cur = conn.cursor()
         cur.execute("SELECT * FROM " + table + ";")
         columns = ["?" for list in cur.description]
-        sql = "UPDATE " + table + " SET (" + \
-              ",".join(columns) + ") = (" + ",".join(part_info) + \
-              ") WHERE part_num = ?"
-        cur.execute(sql, part_info[0])
+        sql = "REPLACE INTO " + table + " VALUES (" + \
+              ",".join(columns) + ");"
+        cur.execute(sql, part_info)
+        close_connection(conn)
+        return "Done"
+    else:
+        print("Error! Unabel to connect to the database.")
 
 
 def list_subs(table, part_num):
@@ -228,10 +231,10 @@ def list_subs(table, part_num):
                        AND ssd_capacity = ? AND do_not_sub = 'FALSE' \
                        AND interface like ?"
                 values = (part_dict["brand"], part_dict["type"],
-                                    part_dict["physical_size"],
-                                    part_dict["connector"],
-                                    part_dict["ssd_capacity"],
-                                    part_dict["interface"][:1] + "%")
+                          part_dict["physical_size"],
+                          part_dict["connector"],
+                          part_dict["ssd_capacity"],
+                          part_dict["interface"][:1] + "%")
 
             else:
                 sql = "SELECT brand, part_num, type, physical_size, height, \
@@ -242,12 +245,12 @@ def list_subs(table, part_num):
                        AND ssd_capacity = ? AND speed = ? \
                        AND do_not_sub = 'FALSE'"
                 values = (part_dict["brand"], part_dict["type"],
-                                  part_dict["physical_size"],
-                                  part_dict["height"],
-                                  part_dict["connector"],
-                                  part_dict["hdd_capacity"],
-                                  part_dict["ssd_capacity"],
-                                  part_dict["speed"])
+                          part_dict["physical_size"],
+                          part_dict["height"],
+                          part_dict["connector"],
+                          part_dict["hdd_capacity"],
+                          part_dict["ssd_capacity"],
+                          part_dict["speed"])
             cur.execute(sql, values)
             results = [list(filter(None, lst)) for lst in cur.fetchall()]
             return results
@@ -323,3 +326,4 @@ def import_from_csv(file):
             close_connection(conn)
     else:
         print("Error! Unable to connect to the database.")
+
