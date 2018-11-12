@@ -206,7 +206,7 @@ def update_part(table, part_info):
         close_connection(conn)
         return "Done"
     else:
-        print("Error! Unabel to connect to the database.")
+        print("Error! Unable to connect to the database.")
 
 
 def list_subs(table, part_num):
@@ -256,7 +256,7 @@ def list_subs(table, part_num):
             return results
         if table == "mem":
             sql = "SELECT brand, part_num, connector, capacity, speed, subbed \
-                   FROM " + table + " WHERE (brand = 'GPC' OR brand = ?) AND \
+                   FROM " + table + " WHERE (brand = 'CVO' OR brand = ?) AND \
                    connector = ? AND capacity = ? AND speed = ? AND \
                    do_not_sub = 'FALSE'"
             cur.execute(sql, (part_dict["brand"], part_dict["connector"],
@@ -326,4 +326,3 @@ def import_from_csv(file):
             close_connection(conn)
     else:
         print("Error! Unable to connect to the database.")
-
