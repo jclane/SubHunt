@@ -5,48 +5,48 @@ part = ["111","PC4-19200S","Lenovo","SO-DIMM","8GB","8GB DDR4 2400 SoDIMM","FALS
 
 conn = create_connection()
 
-def test1():
+def import_test():
     """Test import from csv"""
     import_from_csv(r".\import\mem_test.csv")
     try:
-        assert part_in_db(conn, "mem_test", "123") == True
-        assert part_in_db(conn, "mem_test", "456") == True
-        assert part_in_db(conn, "mem_test", "789") == True
+        assert part_in_db("mem_test", "123") == True
+        assert part_in_db("mem_test", "456") == True
+        assert part_in_db("mem_test", "789") == True
         remove_part("mem_test", "123")
         remove_part("mem_test", "456")
         remove_part("mem_test", "789")
-        assert part_in_db(conn, "mem_test", "123") == False
-        assert part_in_db(conn, "mem_test", "456") == False
-        assert part_in_db(conn, "mem_test", "789") == False
+        assert part_in_db("mem_test", "123") == False
+        assert part_in_db("mem_test", "456") == False
+        assert part_in_db("mem_test", "789") == False
         print("Import: Passed!\n")
     except AssertionError as e:
         print("Import: Failed!\n")
         print(str(e))
         
 
-def test2():
+def add_mem_test():
     """Test adding parts to database"""
     add_part("mem_test", part)
     try:
-        assert part_in_db(conn, "mem_test", "111") == True
+        assert part_in_db("mem_test", "111") == True
         print("Add part: Passed!\n")
     except AssertionError as e:
         print("Add part:Failed!\n")
         print(str(e))
 
-        
-def test3():
+
+def remove_mem_test():
     """Test removed parts from database"""
     remove_part("mem_test", "111")
     try:
-        assert part_in_db(conn, "mem_test", "111") == False
+        assert part_in_db("mem_test", "111") == False
         print("Remove part: Passed!\n")
     except AssertionError as e:
         print("Remove part: Failed!\n")
         print(str(e))
 
         
-def test4():
+def list_subs_test():
     """Test checking listing of subs"""
     import_from_csv(r".\import\hdd.csv")
     part_needing_sub = ["111","Acer","SATA","500","1000","5400","SSHD","2.5","7","SATA III","","FALSE","TRUE"]
@@ -71,7 +71,8 @@ def test4():
         print("List subs: Failed!\n")
         print(str(e))
 
-def test5():
+        
+def valid_sub_test():
     """Test checking if subs are valid"""
     import_from_csv(r".\import\hdd.csv")
     part_needing_sub = ["111","Acer","SATA","500","1000","5400","SSHD","2.5","7","SATA III","","FALSE","TRUE"]
@@ -96,16 +97,40 @@ def test5():
         print("Valid sub: Failed!\n")
         print(str(e))        
         
-        
-test1()
-test2()
-test3()    
-test4()
-test5()
 
+def edit_part_test():
 
-remove_table("hdd")
-remove_table("mem_test")
-print("Tables purged\n")
-
+    part_num = ["TEST", "999", "999", "999", "999", "999", "999", "999", "999", "999", "999", "TRUE", "TRUE"]
+    update_part_num = ["TEST", "1", "1", "1", "1", "1", "1", "1", "1", "1", "1", "FALSE", "FALSE"]
+    
+    add_part("hdd", part_num)
+    update_part("hdd", update_part_num)
+    updated_part = [value for key, value in convert_to_dict("hdd", "TEST").items()]
+    try:
+        assert updated_part == update_part_num
+        print("Edit part: Passed!")
+    except AssertionError as e:
+        print("Edit part: Failed!")
+        print(repr(e))
+    
+    
+def remove_table_test():
+    try:
+        assert remove_table("hdd") == True
+        assert remove_table("mem") == True
+        assert remove_table("cpu") == True
+        assert remove_table("mem_test") == True
+        print("Remove table: Passed!\n")
+    except AssertionError as e:
+        print("Remove table: Failed!\n")
+        print(str(e))
+     
+                
+import_test()
+add_mem_test()
+remove_mem_test()    
+list_subs_test()
+valid_sub_test()
+edit_part_test()
+remove_table_test()
 close_connection(conn)
