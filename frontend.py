@@ -213,12 +213,12 @@ class AddPartPage(tk.Frame):
 
             height_var = tk.StringVar()
             height_var.set("")
-            if part_types_var.get() != "SSD":
-                height_label = tk.Label(sub_frame, text="Height: ")
-                height_label.grid(column=0, row=9)
-                heights = (5, 7, 9)
-                height_drop = tk.OptionMenu(sub_frame, height_var, *heights)
-                height_drop.grid(column=1, row=9)
+
+            height_label = tk.Label(sub_frame, text="Height: ")
+            height_label.grid(column=0, row=9)
+            heights = ("5", "7", "9.5")
+            height_drop = tk.OptionMenu(sub_frame, height_var, *heights)
+            height_drop.grid(column=1, row=9)
 
             interface_label = tk.Label(sub_frame, text="Interface: ")
             interface_label.grid(column=0, row=10)
@@ -477,7 +477,7 @@ class EditPartPage(tk.Frame):
                 part_info = convert_to_dict(table, part_num)
                 for row_num, key in enumerate(part_info):
                     if key in ["do_not_sub", "subbed"]:
-                        part_info[key] = str(bool(part_info[key])).upper()
+                        part_info[key] = str(part_info[key]).upper()
 
                     if key == "part_num":
                         _ = tk.Entry(sub_frame)
@@ -493,7 +493,7 @@ class EditPartPage(tk.Frame):
                                   "Sony", "Toshiba")
                         tk.OptionMenu(sub_frame, brand_var, *brands).grid(
                                             column=1, row=row_num, sticky="W")
-                        updated_part_dict["brand"] = _
+                        updated_part_dict["brand"] = brand_var
                     elif key == "connector":
                         connector_var = tk.StringVar()
                         connector_var.set(part_info[key])
@@ -502,7 +502,7 @@ class EditPartPage(tk.Frame):
                         tk.OptionMenu(sub_frame, connector_var,
                                       *connectors).grid(column=1, row=row_num,
                                                         sticky="W")
-                        updated_part_dict["connector"] = _
+                        updated_part_dict["connector"] = connector_var
                     elif key == "type":
                         type_var = tk.StringVar()
                         type_var.set(part_info[key])
@@ -510,7 +510,7 @@ class EditPartPage(tk.Frame):
                         tk.OptionMenu(sub_frame, type_var,
                                       *types).grid(column=1, row=row_num,
                                                    sticky="W")
-                        updated_part_dict["type"] = _
+                        updated_part_dict["type"] = type_var
                     else:
                         _ = tk.Entry(sub_frame)
                         _.grid(column=1, row=row_num, sticky="W")
@@ -572,7 +572,7 @@ class SearchPage(tk.Frame):
                     }
                 for row_num, key in enumerate(part_info):
                     if key in ["do_not_sub", "subbed"]:
-                        part_info[key] = str(bool(part_info[key]))
+                        part_info[key] = str(part_info[key]).upper()
                     tk.Label(sub_frame, text=key).grid(column=0, row=row_num,
                                                        sticky="W")
                     tk.Label(sub_frame, text=part_info[key]).grid(column=1,
