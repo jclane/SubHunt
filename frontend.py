@@ -4,16 +4,6 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 
 
-def import_list():
-    """Opens a dialog window to pick file for import"""
-
-    file = filedialog.askopenfilename(title="Import",
-                                      filetypes=[("CSV files", "*.csv")])
-
-    if file != "":
-        import_from_csv(file)
-
-
 def clear_widgets(frame):
     for widget in frame.winfo_children():
         widget.destroy()
@@ -28,7 +18,7 @@ class Main(tk.Tk):
         menu = tk.Menu(self)
 
         file_menu = tk.Menu(menu, tearoff=False)
-        file_menu.add_command(label="Import", command=import_list)
+        file_menu.add_command(label="Import", command=self.import_list)
         file_menu.add_command(label="Purge Records",
                               command=lambda: self.show_frame("PurgePage"))
         menu.add_cascade(label="File", menu=file_menu)
@@ -57,7 +47,7 @@ class Main(tk.Tk):
         menu.add_cascade(label="?", menu=help_menu)
 
         self.config(menu=menu)
-        self.geometry("750x500")
+        self.geometry("860x525")
 
         container = tk.Frame(self)
         container.grid(column=0, row=0, sticky="EW")
@@ -79,6 +69,14 @@ class Main(tk.Tk):
         '''Show a frame for the given page name'''
         frame = self.frames[page_name]
         frame.tkraise()
+
+    def import_list(self):
+        """Opens a dialog window to pick file for import"""
+        file = filedialog.askopenfilename(title="Import",
+                                          filetypes=[("CSV files", "*.csv")])
+
+        if file != "":
+            import_from_csv(file)
 
 
 class MainPage(tk.Frame):
@@ -632,17 +630,9 @@ class FindSubsPage(tk.Frame):
             part_info = convert_to_dict(table, part_num)
 
             if table == "hdd":
-                if part_info["type"] == "HDD":
-                    headers = ["Brand", "Part Number", "Type", "Deminsions",
-                               "Height", "Connector", "Capacity (GB)",
-                               "Speed", "Subbed?"]
-                elif part_info["type"] == "SSD":
-                    headers = ["Brand", "Part Number", "Type", "Deminsions",
-                               "Connector", "Capacity (GB)", "Subbed?"]
-                elif part_info["type"] == "SSHD":
-                    headers = ["Brand", "Part Number", "Type", "Height",
-                               "Connector", "HDD Capacity (GB)",
-                               "SSD Capacity", "Speed", "Subbed?"]
+                headers = ["Brand", "Part Number", "Type", "Deminsions",
+                           "Height", "Connector", "HDD (GB)",
+                           "SSD (GB)", "Speed", "Subbed?"]
             elif table == "mem":
                 headers = ["Brand", "Part Number", "Connector", "Capacity",
                            "Speed", "Subbed?"]
@@ -651,17 +641,19 @@ class FindSubsPage(tk.Frame):
                            "Subbed?"]
 
             widths = {}
-            for col_num in range(0, len(subs[0])):
+            for col_num in enumerate(subs[0]):
                 columns = []
                 for sub in subs:
-                    columns.append(sub[col_num])
-                widths[col_num] = max(len(element) for element in columns)
-                label_width = max(widths[col_num], len(headers[col_num]))
-                if widths[col_num] < label_width:
-                    widths[col_num] = label_width + 2
-                tk.Label(results, text=headers[col_num],
-                         width=widths[col_num],
-                         justify="center").grid(column=col_num, row=0)
+                    columns.append(sub[col_num[0]])
+                    widths[col_num[0]] = max(len(element) for element in columns)
+                label_width = max(widths[col_num[0]], len(headers[col_num[0]]))
+                if widths[col_num[0]] < label_width:
+                    widths[col_num[0]] = label_width + 2
+
+            for col, header in enumerate(headers):
+                tk.Label(results, text=header,
+                         width=widths[col],
+                         justify="center").grid(column=col, row=0)
 
             for row, sub in enumerate(subs):
                 if row % 2 == 0:
@@ -669,12 +661,21 @@ class FindSubsPage(tk.Frame):
                 else:
                     bg_color = "snow2"
 
+                if sub[-1] == "TRUE":
+                    fg_color = "green4"
+                else:
+                    fg_color = "Red2"
+
+                if sub[0] == "CVO":
+                    fg_color = "steelblue"
+
                 for col, info in enumerate(sub):
                     info_var = tk.StringVar()
                     info_var.set(info)
                     tk.Entry(results, width=widths[col] + 2,
                              textvariable=info_var,
                              readonlybackground=bg_color,
+                             foreground=fg_color,
                              relief="flat", justify="center",
                              state="readonly").grid(column=col, row=row + 1,
                                                     sticky="EW")
