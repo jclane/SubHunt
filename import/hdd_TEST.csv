@@ -1,0 +1,6 @@
+part_num,brand,connector,hdd_capacity,ssd_capacity,speed,type,physical_size,height,interface,description,do_not_sub,subbed
+1111111,Lenovo,SATA,500,,5400,HDD,2.5,7,SATA III,,FALSE,TRUE
+2222222,Lenovo,SATA,1000,8,5400,SSHD,2.5,9.5,SATA III,,FALSE,FALSE
+9999999,Lenovo,SATA,500,,7200,HDD,2.5,7,SATA III,,FALSE,TRUE
+2222223,Lenovo,SATA,1000,8,5400,SSHD,2.5,9.5,SATA III,,FALSE,FALSE
+1111112,Lenovo,SATA,500,,5400,HDD,2.5,7,SATA III,,FALSE,FALSE
