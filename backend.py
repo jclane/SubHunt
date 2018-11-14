@@ -1,3 +1,5 @@
+"""Handles the sqlite3 database."""
+
 import sqlite3
 import csv
 from os.path import basename
