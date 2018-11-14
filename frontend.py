@@ -4,7 +4,8 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 
 from backend import (remove_table, part_in_db, add_part, remove_part,
-                     convert_to_dict, update_part, list_subs, import_from_csv)
+                     convert_to_dict, update_part, list_subs,
+                     is_valid_sub, import_from_csv)
 
 
 def clear_widgets(frame):
@@ -40,7 +41,8 @@ class Main(tk.Tk):
         search_menu = tk.Menu(menu, tearoff=False)
         search_menu.add_command(
             label="Part Info", command=lambda: self.show_frame("SearchPage"))
-        search_menu.add_command(label="Verify Sub [coming soon]")
+        search_menu.add_command(
+            label="Verify Sub", command=lambda: self.show_frame("VerifySubsPage"))
         search_menu.add_command(
             label="List Subs", command=lambda: self.show_frame("FindSubsPage")
             )
@@ -62,7 +64,8 @@ class Main(tk.Tk):
         self.frames = {}
 
         for frame_name in (MainPage, PurgePage, AddPartPage, RemovePartPage,
-                           EditPartPage, SearchPage, FindSubsPage):
+                           EditPartPage, SearchPage, VerifySubsPage,
+                           FindSubsPage):
             page_name = frame_name.__name__
             frame = frame_name(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -98,7 +101,6 @@ class PurgePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.grid(padx=5, pady=5)
 
         def purge_table():
             """Calls remove_table to remove table from the database."""
@@ -447,7 +449,7 @@ class RemovePartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.title = "partsDB | Remove Part"
+        self.title = "SubHunt | Remove Part"
 
         def remove_it():
             """
@@ -606,7 +608,7 @@ class SearchPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.title = "partsDB | Find Part Info"
+        self.title = "SubHunt | Find Part Info"
 
         container = tk.Frame(self)
         container.grid(column=0, row=0, sticky="EW")
@@ -665,6 +667,74 @@ class SearchPage(tk.Frame):
         info_search_button.grid(column=3, row=0, sticky="EW")
 
 
+class VerifySubsPage(tk.Frame):
+    """Displays if two entered part numbers are valid subs."""
+
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.title = "SubHunt | Verify Subs"
+
+        search_frame = tk.Frame(self)
+        search_frame.grid(column=0, row=0, sticky="EW")
+
+        def show_result(result):
+            """
+            Displays True or False depending on result.
+
+            :param result: Boolean
+            """
+            if result:
+                bg_color = "green"
+            if not result:
+                bg_color = "red"
+            result_label = tk.Label(search_frame, text=str(result),
+                                    bg=bg_color, font=24)
+            result_label.grid(column=0, row=3, columnspan=2, sticky="NSEW")
+
+        def verify_sub(table, part_num, other_part_num):
+            """
+            Calls is_valid_sub using table, part_num, and
+            other_part_num and calls show_result with the result.
+
+            :param table: Table in database
+            :param part_num: Part number
+            :param other_part_num: Part number to compare
+            """
+            if part_num and other_part_num:
+                show_result(is_valid_sub(table, part_num, other_part_num))
+            else:
+                messagebox.showerror("All fields required", "Please enter data in both part number fields.")
+
+        part_num_label = tk.Label(search_frame, text="Enter Part Number")
+        part_num_label.grid(column=0, row=0)
+
+        part_num_box = tk.Entry(search_frame, text="")
+        part_num_box.grid(column=1, row=0)
+
+        other_part_label = tk.Label(search_frame, text="Enter Second Part")
+        other_part_label.grid(column=0, row=1)
+
+        other_part_box = tk.Entry(search_frame, text="")
+        other_part_box.grid(column=1, row=1)
+
+        subs_type_var = tk.StringVar()
+        subs_type_var.set("HDD")
+        subs_types = ("HDD", "MEM", "CPU")
+
+        subs_type_drop = tk.OptionMenu(search_frame, subs_type_var,
+                                       *subs_types)
+        subs_type_drop.grid(column=0, row=2)
+
+        subs_search_button = tk.Button(search_frame, text="Verify",
+                                       command=lambda:
+                                       verify_sub(subs_type_var.get().lower(),
+                                                  part_num_box.get().strip(),
+                                                  other_part_box.get()
+                                                  .strip()))
+        subs_search_button.grid(column=1, row=2)
+
+
 class FindSubsPage(tk.Frame):
     """
     Displays the matching subs for a given part number in the GUI.
@@ -673,7 +743,7 @@ class FindSubsPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.title = "partsDB | Find Subs"
+        self.title = "SubHunt | Find Subs"
 
         search_frame = tk.Frame(self)
         search_frame.grid(column=0, row=0, sticky="EW")
