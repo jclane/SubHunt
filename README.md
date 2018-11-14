@@ -2,8 +2,11 @@
 
 Originally I was using a MS Access database to keep track of various PC parts currently in our main database.  The main parts database does not allow me to narrow parts down to their specs.  A CPU is a CPU is a CPU you might say.  This made finding parts that could be subbed for one another tedious.  This app allows me to input part numbers and their specifications making that task much more efficient (and without the performance issues I had with MS Access).
 
-## Nov. 12 2018
-I was able to find a one-size-fits-all solution the part editing issue.  Classes for the parts were created, but have no been uploaded as there is currently no use for them.
+## Nov. 14 2018
+Added the ability to confirm if two part numbers are valid subs (using the GUI).  Also added docstrings for all functions.
+
+### Nov. 12 2018
+I was able to find a one-size-fits-all solution the part editing issue.  Classes for the parts were created, but have not been uploaded as there is currently no use for them.
 
 Code is still ugly.
 
