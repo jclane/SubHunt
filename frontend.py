@@ -1,15 +1,20 @@
-from backend import *
+"""Displays the GUI for SubHunt."""
 
 import tkinter as tk
 from tkinter import messagebox, filedialog
 
+from backend import (remove_table, part_in_db, add_part, remove_part,
+                     convert_to_dict, update_part, list_subs, import_from_csv)
+
 
 def clear_widgets(frame):
+    """Removes all widgets from frame."""
     for widget in frame.winfo_children():
         widget.destroy()
 
 
 class Main(tk.Tk):
+    """Displays initial state of GUI."""
 
     def __init__(self, *args, **kwargs):
 
@@ -56,17 +61,17 @@ class Main(tk.Tk):
 
         self.frames = {}
 
-        for F in (MainPage, PurgePage, AddPartPage, RemovePartPage,
-                  EditPartPage, SearchPage, FindSubsPage):
-            page_name = F.__name__
-            frame = F(parent=container, controller=self)
+        for frame_name in (MainPage, PurgePage, AddPartPage, RemovePartPage,
+                           EditPartPage, SearchPage, FindSubsPage):
+            page_name = frame_name.__name__
+            frame = frame_name(parent=container, controller=self)
             self.frames[page_name] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame("MainPage")
 
     def show_frame(self, page_name):
-        '''Show a frame for the given page name'''
+        """Show a frame for the given page name"""
         frame = self.frames[page_name]
         frame.tkraise()
 
@@ -80,6 +85,7 @@ class Main(tk.Tk):
 
 
 class MainPage(tk.Frame):
+    """Initial page.  Is blank."""
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -87,6 +93,7 @@ class MainPage(tk.Frame):
 
 
 class PurgePage(tk.Frame):
+    """Displays GUI for user to remove tables from database."""
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -94,11 +101,13 @@ class PurgePage(tk.Frame):
         self.grid(padx=5, pady=5)
 
         def purge_table():
+            """Calls remove_table to remove table from the database."""
+
             if remove_table(db_var.get().lower()):
                 messagebox.showinfo("Purge Complete",
                                     db_var.get() + " table purged.")
             else:
-                messagebox.showerror(e)
+                messagebox.showerror("Error!")
 
         db_label = tk.Label(self, text="Database to purge: ")
         db_label.grid(column=0, row=0, sticky="EW")
@@ -119,6 +128,7 @@ class PurgePage(tk.Frame):
 
 
 class AddPartPage(tk.Frame):
+    """Displays GUI for users to add parts to the database."""
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -139,6 +149,11 @@ class AddPartPage(tk.Frame):
         part_type_drop.grid(column=1, row=0, sticky="EW")
 
         def add_hdd():
+            """
+            Displays GUI for the user to add a record to the "hdd"
+            table.
+            """
+
             part_num_label = tk.Label(sub_frame, text="Part Number: ")
             part_num_label.grid(column=0, row=1)
             part_num_box = tk.Entry(sub_frame)
@@ -254,7 +269,6 @@ class AddPartPage(tk.Frame):
                              str(bool(do_not_sub_var.get())).upper(),
                              str(bool(subbed_var.get())).upper())
                 if add_part("hdd", part_info) == "Done":
-                    pass
                     messagebox.showinfo("Part Added",
                                         part_num_box.get().strip() +
                                         " has been added to the database.")
@@ -263,6 +277,11 @@ class AddPartPage(tk.Frame):
             add_button.grid(column=1, row=13, sticky="EW")
 
         def add_mem():
+            """
+            Displays GUI for the user to add a record to the "mem"
+            table.
+            """
+
             part_num_label = tk.Label(sub_frame, text="Part Number: ")
             part_num_label.grid(column=0, row=1)
 
@@ -338,6 +357,11 @@ class AddPartPage(tk.Frame):
             add_button.grid(column=1, row=9, sticky="EW")
 
         def add_cpu():
+            """
+            Displays GUI for the user to add a record to the "cpu"
+                table.
+            """
+
             part_num_label = tk.Label(sub_frame, text="Part Number: ")
             part_num_label.grid(column=0, row=1)
 
@@ -394,7 +418,12 @@ class AddPartPage(tk.Frame):
             add_button = tk.Button(sub_frame, text="Add", command=add_it)
             add_button.grid(column=1, row=9, sticky="EW")
 
-        def change_dropdown(*args):
+        def change_dropdown():
+            """
+            When a part type/table is selected from the dropdown
+                all widgets are removed from sub_frame and appropriate
+                method is called.
+            """
             clear_widgets(sub_frame)
             if part_types_var.get() in ["HDD", "SSD", "SSHD"]:
                 clear_widgets(sub_frame)
@@ -410,6 +439,10 @@ class AddPartPage(tk.Frame):
 
 
 class RemovePartPage(tk.Frame):
+    """
+    Displays the GUI allowing users to remove parts from the
+    database.
+    """
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -417,6 +450,10 @@ class RemovePartPage(tk.Frame):
         self.title = "partsDB | Remove Part"
 
         def remove_it():
+            """
+            Retreives table and part_num field data and uses it
+            to call remove_part.
+            """
             part_num = part_num_box.get().strip()
             table = part_type_var.get()
             if (part_num != "" and part_in_db(table, part_num) and
@@ -449,7 +486,10 @@ class RemovePartPage(tk.Frame):
 
 
 class EditPartPage(tk.Frame):
-
+    """
+    Displays GUI allowing the user to edit details of a record
+    already in the database.
+    """
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -460,6 +500,12 @@ class EditPartPage(tk.Frame):
         updated_part_dict = {}
 
         def save_it(updated_info):
+            """
+            Creates of tuple of the dictionary passed to then uses that
+            data to call update_part.
+
+            :param updated_info: Dictionary with desired changes
+            """
             part_info = tuple(value.get() for key, value
                               in updated_info.items())
             if update_part(info_type_var.get().lower(), part_info) == "Done":
@@ -467,9 +513,13 @@ class EditPartPage(tk.Frame):
                                     info_search_box.get().strip() +
                                     " has been updated.")
 
-        def show_part_info():
+        def show_part_info(part_num):
+            """
+            Displays the part info in the GUI in a visually appealing
+            way.  Will display an error message if the part passed to
+            it is not in the database.
+            """
             clear_widgets(sub_frame)
-            part_num = info_search_box.get().strip()
             table = info_type_var.get().lower()
             if part_num != "" and part_in_db(table, part_num):
                 part_info = convert_to_dict(table, part_num)
@@ -490,7 +540,7 @@ class EditPartPage(tk.Frame):
                                   "Hewlett Packard", "Lenovo", "Samsung",
                                   "Sony", "Toshiba")
                         tk.OptionMenu(sub_frame, brand_var, *brands).grid(
-                                            column=1, row=row_num, sticky="W")
+                            column=1, row=row_num, sticky="W")
                         updated_part_dict["brand"] = brand_var
                     elif key == "connector":
                         connector_var = tk.StringVar()
@@ -537,7 +587,9 @@ class EditPartPage(tk.Frame):
         info_type_drop.grid(column=2, row=0, sticky="EW")
 
         info_search_button = tk.Button(container, text="Search",
-                                       command=show_part_info)
+                                       command=lambda:
+                                       show_part_info(info_search_box.get()
+                                                      .strip()))
         info_search_button.grid(column=3, row=0, sticky="EW")
 
         save_button = tk.Button(container, text="Save",
@@ -546,6 +598,10 @@ class EditPartPage(tk.Frame):
 
 
 class SearchPage(tk.Frame):
+    """
+    Displays a GUI allowing users to search the database for a given
+    record and display data for that record.
+    """
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -558,9 +614,14 @@ class SearchPage(tk.Frame):
         sub_frame = tk.Frame(self)
         sub_frame.grid(column=0, row=1, sticky="EW")
 
-        def show_part_info():
+        def show_part_info(part_num):
+            """
+            Displays data for part_num on the frame.  Will return an
+            error message if part is not in the database.
+
+            :param part_num: Part number to search for
+            """
             clear_widgets(sub_frame)
-            part_num = info_search_box.get().strip()
             table = info_type_var.get().lower()
             if part_num != "" and part_in_db(table, part_num):
                 part_dict = convert_to_dict(table, part_num)
@@ -598,11 +659,16 @@ class SearchPage(tk.Frame):
         info_type_drop.grid(column=2, row=0, sticky="EW")
 
         info_search_button = tk.Button(container, text="Search",
-                                       command=show_part_info)
+                                       command=lambda:
+                                       show_part_info(info_search_box.get()
+                                                      .strip()))
         info_search_button.grid(column=3, row=0, sticky="EW")
 
 
 class FindSubsPage(tk.Frame):
+    """
+    Displays the matching subs for a given part number in the GUI.
+    """
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
@@ -615,7 +681,7 @@ class FindSubsPage(tk.Frame):
         results = tk.Frame(self)
         results.grid(column=0, row=1, padx=20, pady=10, sticky="EW")
 
-        def make_table(table, part_num, subs):
+        def make_table(table, subs):
             """
             Displays list of a subs in a spreadsheet
             like manner.
@@ -626,13 +692,10 @@ class FindSubsPage(tk.Frame):
                 of part_num
             """
             clear_widgets(results)
-
-            part_info = convert_to_dict(table, part_num)
-
             if table == "hdd":
                 headers = ["Brand", "Part Number", "Type", "Deminsions",
-                           "Height", "Connector", "HDD (GB)",
-                           "SSD (GB)", "Speed", "Subbed?"]
+                           "Height", "Connector", "HDD (GB)", "SSD (GB)",
+                           "Speed", "Subbed?"]
             elif table == "mem":
                 headers = ["Brand", "Part Number", "Connector", "Capacity",
                            "Speed", "Subbed?"]
@@ -680,13 +743,16 @@ class FindSubsPage(tk.Frame):
                              state="readonly").grid(column=col, row=row + 1,
                                                     sticky="EW")
 
-        def find_subs():
-            part_num = subs_search_box.get().strip()
+        def find_subs(part_num):
+            """
+            Finds subs for part_num in the database.
+            Then calls make_table to display them.
+            """
             table = subs_type_var.get().lower()
             if part_num != "" and part_in_db(table, part_num):
                 subs = list_subs(table, part_num)
-                if len(subs) != 0:
-                    make_table(table, part_num, subs)
+                if subs:
+                    make_table(table, subs)
             elif not part_in_db(table, part_num):
                 messagebox.showerror("Invalid Entry",
                                      part_num +
@@ -707,11 +773,7 @@ class FindSubsPage(tk.Frame):
         subs_type_drop.grid(column=2, row=0)
 
         subs_search_button = tk.Button(search_frame, text="Search",
-                                       command=find_subs)
+                                       command=lambda:
+                                       find_subs(subs_search_box.get()
+                                                 .strip()))
         subs_search_button.grid(column=3, row=0)
-
-
-if __name__ == "__main__":
-    app = Main()
-    app.title("partsDB")
-    app.mainloop()
