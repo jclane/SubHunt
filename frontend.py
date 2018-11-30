@@ -139,120 +139,154 @@ class AddPartPage(tk.Frame):
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
-        self.container = tk.Frame(self)
-        self.container.grid(column=0, row=0, sticky="EW")
+        self.top_frame = tk.Frame(self)
+        self.top_frame.grid(column=0, row=0, padx=5, pady=5, sticky="EW")
 
-        self.sub_frame = tk.Frame(self)
-        self.sub_frame.grid(column=0, row=1, padx=5, pady=5)
+        self.part_info_container = tk.Frame(self)
+        self.part_info_container.grid(column=0, row=1)
 
-        self.part_type_label = tk.Label(self.container,
+        self.middle_frame = tk.Frame(self.part_info_container)
+        self.middle_frame.grid(column=0, row=1)
+
+        self.type_specific_frame = tk.Frame(self.part_info_container)
+        self.type_specific_frame.grid(column=0)
+
+        self.bottom_frame = tk.Frame(self.part_info_container)
+        self.bottom_frame.grid(column=0, row=3)
+
+        self.part_type_label = tk.Label(self.top_frame,
                                         text="Select part type: ")
         self.part_type_label.grid(column=0, row=0, sticky="W")
         self.part_types = ["HDD", "SSD", "SSHD", "MEM", "CPU"]
         self.part_types_var = tk.StringVar()
         self.part_types_var.set("HDD")
-        self.part_type_drop = tk.OptionMenu(self.container,
+        self.part_type_drop = tk.OptionMenu(self.top_frame,
                                             self.part_types_var,
                                             *self.part_types)
         self.part_type_drop.grid(column=1, row=0, sticky="EW")
 
-        self.part_types_var.trace('w', self.change_dropdown)
-
-    def add_hdd(self):
-        """
-        Displays GUI for the user to add a record to the "hdd"
-        table.
-        """
-
-        self.part_num_label = tk.Label(self.sub_frame, text="Part Number: ")
+        self.part_num_label = tk.Label(self.middle_frame,
+                                       text="Part Number: ")
         self.part_num_label.grid(column=0, row=1)
-        self.part_num_box = tk.Entry(self.sub_frame)
+        self.part_num_box = tk.Entry(self.middle_frame)
         self.part_num_box.grid(column=1, row=1, sticky="EW")
 
-        self.brand_label = tk.Label(self.sub_frame, text="Brand: ")
+        self.brand_label = tk.Label(self.middle_frame, text="Brand: ")
         self.brand_label.grid(column=0, row=2)
         self.brand_var = tk.StringVar()
         self.brand_var.set("Acer")
         self.brands = ("Acer", "Asus", "CVO", "Dell", "Hewlett Packard",
                        "Lenovo", "Samsung", "Sony", "Toshiba")
-        self.brand_drop = tk.OptionMenu(self.sub_frame,
+        self.brand_drop = tk.OptionMenu(self.middle_frame,
                                         self.brand_var,
                                         *self.brands)
         self.brand_drop.grid(column=1, row=2, sticky="EW")
 
-        self.description_label = tk.Label(self.sub_frame,
+        self.description_label = tk.Label(self.middle_frame,
                                           text="Description: ")
         self.description_label.grid(column=0, row=3)
-        self.description_box = tk.Entry(self.sub_frame)
+        self.description_box = tk.Entry(self.middle_frame)
         self.description_box.grid(column=1, row=3)
 
-        self.connector_label = tk.Label(self.sub_frame, text="Connector: ")
-        self.connector_label.grid(column=0, row=4)
+        self.do_not_sub_var = tk.BooleanVar()
+        self.do_not_sub_var.set(False)
+        self.do_not_sub_check = tk.Checkbutton(self.bottom_frame,
+                                               text="Do Not Sub? ",
+                                               variable=self.do_not_sub_var,
+                                               offvalue=False, onvalue=True,
+                                               anchor="w")
+        self.do_not_sub_check.grid(column=1, row=0, sticky="EW")
+
+        self.subbed_var = tk.BooleanVar()
+        self.subbed_var.set(False)
+        self.subbed_check = tk.Checkbutton(self.bottom_frame, text="Subbed? ",
+                                           variable=self.subbed_var,
+                                           offvalue=False, onvalue=True,
+                                           anchor="w")
+        self.subbed_check.grid(column=1, row=1, sticky="EW")
+
+        self.add_button = tk.Button(self.bottom_frame, text="Add",
+                                    command=self.add_it)
+        self.add_button.grid(column=1, row=2, sticky="EW")
+
+        self.part_types_var.trace('w', self.change_dropdown)
+
+    def storage(self):
+        """
+        Displays GUI for the user to add a record to the "hdd"
+        table.
+        """
+        self.connector_label = tk.Label(self.type_specific_frame,
+                                        text="Connector: ")
+        self.connector_label.grid(column=0, row=0)
         self.connector_var = tk.StringVar()
         self.connector_var.set("SATA")
         if self.part_types_var.get() in ["HDD", "SSHD"]:
             self.connectors = ("SATA", "IDE", "proprietary")
         elif self.part_types_var.get() == "SSD":
             self.connectors = ("SATA", "m.2", "eMMC", "mSATA", "proprietary")
-        self.connector_drop = tk.OptionMenu(self.sub_frame,
+        self.connector_drop = tk.OptionMenu(self.type_specific_frame,
                                             self.connector_var,
                                             *self.connectors)
-        self.connector_drop.grid(column=1, row=4)
+        self.connector_drop.grid(column=1, row=0, sticky="EW")
 
-        self.hdd_capacity_box = tk.Entry(self.sub_frame)
-        self.ssd_capacity_box = tk.Entry(self.sub_frame)
+        self.hdd_capacity_box = tk.Entry(self.type_specific_frame)
+        self.ssd_capacity_box = tk.Entry(self.type_specific_frame)
         if self.part_types_var.get() in ["HDD", "SSHD"]:
             self.hdd_capacity_label = tk.Label(
-                self.sub_frame, text="HDD Capacity (GB): "
+                self.type_specific_frame, text="HDD Capacity (GB): "
                 )
-            self.hdd_capacity_label.grid(column=0, row=5)
-            self.hdd_capacity_box.grid(column=1, row=5)
+            self.hdd_capacity_label.grid(column=0, row=1)
+            self.hdd_capacity_box.grid(column=1, row=1)
         else:
             self.hdd_capacity_box.insert(0, "")
 
         if self.part_types_var.get() in ["SSHD", "SSD"]:
-            self.ssd_capacity_label = tk.Label(self.sub_frame,
+            self.ssd_capacity_label = tk.Label(self.type_specific_frame,
                                                text="SSD Capacity (GB): ")
-            self.ssd_capacity_label.grid(column=0, row=6)
-            self.ssd_capacity_box.grid(column=1, row=6)
+            self.ssd_capacity_label.grid(column=0, row=2)
+            self.ssd_capacity_box.grid(column=1, row=2)
         else:
             self.ssd_capacity_box.insert(0, "")
 
-        self.speed_box = tk.Entry(self.sub_frame)
+        self.speed_box = tk.Entry(self.type_specific_frame)
         if self.part_types_var.get() in ["HDD", "SSHD"]:
-            self.speed_label = tk.Label(self.sub_frame, text="Speed: ")
-            self.speed_label.grid(column=0, row=7)
-            self.speed_box.grid(column=1, row=7)
+            self.speed_label = tk.Label(self.type_specific_frame,
+                                        text="Speed: ")
+            self.speed_label.grid(column=0, row=3)
+            self.speed_box.grid(column=1, row=3)
         else:
             self.speed_box.insert(0, "")
 
-        self.physical_size_label = tk.Label(self.sub_frame,
+        self.physical_size_label = tk.Label(self.type_specific_frame,
                                             text="Physical Size: ")
-        self.physical_size_label.grid(column=0, row=8)
+        self.physical_size_label.grid(column=0, row=4)
         self.physical_size_var = tk.StringVar()
         self.physical_size_var.set("2.5")
         if self.part_types_var.get() == "SSD":
             self.physical_sizes = ("2.5", "2280", "2260", "2242", "2230")
         elif self.part_types_var.get() in ["HDD", "SSHD"]:
             self.physical_sizes = ("2.5", "3.5")
-        self.physical_size_drop = tk.OptionMenu(self.sub_frame,
+        self.physical_size_drop = tk.OptionMenu(self.type_specific_frame,
                                                 self.physical_size_var,
                                                 *self.physical_sizes)
-        self.physical_size_drop.grid(column=1, row=8)
+        self.physical_size_drop.grid(column=1, row=4, sticky="EW")
 
         self.height_var = tk.StringVar()
         self.height_var.set("")
 
-        self.height_label = tk.Label(self.sub_frame, text="Height: ")
-        self.height_label.grid(column=0, row=9)
+        self.height_label = tk.Label(self.type_specific_frame,
+                                     text="Height: ")
+        self.height_label.grid(column=0, row=5)
         self.heights = ("5", "7", "9.5")
-        self.height_drop = tk.OptionMenu(self.sub_frame,
+        self.height_drop = tk.OptionMenu(self.type_specific_frame,
                                          self.height_var,
                                          *self.heights)
-        self.height_drop.grid(column=1, row=9)
+        self.height_drop.grid(column=1, row=5, sticky="EW")
 
-        self.interface_label = tk.Label(self.sub_frame, text="Interface: ")
-        self.interface_label.grid(column=0, row=10)
+        self.interface_label = tk.Label(self.type_specific_frame,
+                                        text="Interface: ")
+        self.interface_label.grid(column=0, row=6)
         self.interface_var = tk.StringVar()
         self.interface_var.set("SATA III")
         if self.part_types_var.get() == "SSD":
@@ -261,27 +295,68 @@ class AddPartPage(tk.Frame):
         elif self.part_types_var.get() in ["HDD", "SSHD"]:
             self.interfaces = ("SATA III", "SATA II", "SATA I",
                                "SATA", "PATA")
-        self.interfaces_drop = tk.OptionMenu(self.sub_frame,
+        self.interfaces_drop = tk.OptionMenu(self.type_specific_frame,
                                              self.interface_var,
                                              *self.interfaces)
-        self.interfaces_drop.grid(column=1, row=10)
+        self.interfaces_drop.grid(column=1, row=6, sticky="EW")
 
-        self.do_not_sub_var = tk.BooleanVar()
-        self.do_not_sub_var.set(False)
-        self.do_not_sub_check = tk.Checkbutton(self.sub_frame,
-                                               text="Do Not Sub? ",
-                                               variable=self.do_not_sub_var,
-                                               anchor="w")
-        self.do_not_sub_check.grid(column=1, row=11, sticky="EW")
+    def memory(self):
+        """
+        Displays GUI for the user to add a record to the "mem"
+        table.
+        """
+        self.speed_label = tk.Label(self.type_specific_frame, text="Speed: ")
+        self.speed_label.grid(column=0, row=0)
+        self.speed_box = tk.Entry(self.type_specific_frame)
+        self.speed_box.grid(column=1, row=0)
 
-        self.subbed_var = tk.BooleanVar()
-        self.subbed_var.set(False)
-        self.subbed_check = tk.Checkbutton(self.sub_frame, text="Subbed? ",
-                                           variable=self.subbed_var,
-                                           anchor="w")
-        self.subbed_check.grid(column=1, row=12, sticky="EW")
+        self.connector_label = tk.Label(self.type_specific_frame,
+                                        text="Connector: ")
+        self.connector_label.grid(column=0, row=1)
+        self.connector_var = tk.StringVar()
+        self.connector_var.set("SO-DIMM")
+        self.connectors = ("SO-DIMM", "UDIMM")
+        self.connector_drop = tk.OptionMenu(self.type_specific_frame,
+                                            self.connector_var,
+                                            *self.connectors)
+        self.connector_drop.grid(column=1, row=1, sticky="EW")
 
-        def add_it():
+        self.capacity_label = tk.Label(self.type_specific_frame,
+                                       text="Capacity (GB): ")
+        self.capacity_label.grid(column=0, row=2)
+        self.capacity_box = tk.Entry(self.type_specific_frame)
+        self.capacity_box.grid(column=1, row=2)
+
+    def cpu(self):
+        """
+        Displays GUI for the user to add a record to the "cpu" table.
+        """
+        self.oem_label = tk.Label(self.type_specific_frame,
+                                  text="OEM Part Number: ")
+        self.oem_label.grid(column=0, row=0)
+
+        self.oem_box = tk.Entry(self.type_specific_frame)
+        self.oem_box.grid(column=1, row=0)
+
+    def set_label_width(self):
+        """
+        Sets the width of each label in the container frame to match
+        the longest label.
+        """
+        width = 0
+        for frame in self.part_info_container.winfo_children():
+            for widget in frame.winfo_children():
+                if widget.winfo_class() == "Label":
+                    if width < len(widget.cget("text")):
+                        width = len(widget.cget("text"))
+        for frame in self.part_info_container.winfo_children():
+            for widget in frame.winfo_children():
+                if widget.winfo_class() == "Label":
+                    widget.configure(width=width - 2)
+                    widget.configure(anchor="e")
+
+    def add_it(self):
+        if self.part_types_var.get() in ["HDD", "SSD", "SSHD"]:
             self.part_info = (self.part_num_box.get().strip(),
                               self.brand_var.get(), self.connector_var.get(),
                               self.hdd_capacity_box.get(),
@@ -293,174 +368,25 @@ class AddPartPage(tk.Frame):
                               self.description_box.get(),
                               str(bool(self.do_not_sub_var.get())).upper(),
                               str(bool(self.subbed_var.get())).upper())
-            if add_part("hdd", self.part_info) == "Done":
-                messagebox.showinfo("Part Added",
-                                    self.part_num_box.get().strip() +
-                                    " has been added to the database.")
-
-        self.add_button = tk.Button(self.sub_frame, text="Add",
-                                    command=add_it)
-        self.add_button.grid(column=1, row=13, sticky="EW")
-
-    def add_mem(self):
-        """
-        Displays GUI for the user to add a record to the "mem"
-        table.
-        """
-
-        self.part_num_label = tk.Label(self.sub_frame, text="Part Number: ")
-        self.part_num_label.grid(column=0, row=1)
-
-        self.part_num_box = tk.Entry(self.sub_frame)
-        self.part_num_box.grid(column=1, row=1, sticky="EW")
-
-        self.brand_label = tk.Label(self.sub_frame, text="Brand: ")
-        self.brand_label.grid(column=0, row=2)
-
-        self.brand_var = tk.StringVar()
-        self.brand_var.set("Acer")
-        self.brands = ("Acer", "Asus", "CVO", "Dell", "Hewlett Packard",
-                       "Lenovo", "Samsung", "Sony", "Toshiba")
-
-        self.brand_drop = tk.OptionMenu(self.sub_frame,
-                                        self.brand_var,
-                                        *self.brands)
-        self.brand_drop.grid(column=1, row=2, sticky="EW")
-
-        self.description_label = tk.Label(self.sub_frame,
-                                          text="Description: ")
-        self.description_label.grid(column=0, row=3)
-
-        self.description_box = tk.Entry(self.sub_frame)
-        self.description_box.grid(column=1, row=3)
-
-        self.speed_label = tk.Label(self.sub_frame, text="Speed: ")
-        self.speed_label.grid(column=0, row=4)
-
-        self.speed_box = tk.Entry(self.sub_frame)
-        self.speed_box.grid(column=1, row=4)
-
-        self.connector_label = tk.Label(self.sub_frame, text="Connector: ")
-        self.connector_label.grid(column=0, row=5)
-
-        self.connector_var = tk.StringVar()
-        self.connector_var.set("SO-DIMM")
-        self.connectors = ("SO-DIMM", "UDIMM")
-
-        self.connector_drop = tk.OptionMenu(self.sub_frame,
-                                            self.connector_var,
-                                            *self.connectors)
-        self.connector_drop.grid(column=1, row=5)
-
-        self.capacity_label = tk.Label(self.sub_frame, text="Capacity (GB): ")
-        self.capacity_label.grid(column=0, row=6)
-
-        self.capacity_box = tk.Entry(self.sub_frame)
-        self.capacity_box.grid(column=1, row=6)
-
-        self.do_not_sub_var = tk.BooleanVar()
-        self.do_not_sub_var.set(False)
-
-        self.do_not_sub_check = tk.Checkbutton(self.sub_frame,
-                                               text="Do Not Sub? ",
-                                               variable=self.do_not_sub_var,
-                                               offvalue=False, onvalue=True,
-                                               anchor="w")
-        self.do_not_sub_check.grid(column=1, row=7, sticky="EW")
-
-        self.subbed_var = tk.BooleanVar()
-        self.subbed_var.set(False)
-
-        self.subbed_check = tk.Checkbutton(self.sub_frame, text="Subbed? ",
-                                           variable=self.subbed_var,
-                                           offvalue=False,
-                                           onvalue=True, anchor="w")
-        self.subbed_check.grid(column=1, row=8, sticky="EW")
-
-        def add_it():
+            self.table = "hdd"
+        elif self.part_types_var.get() == "MEM":
             self.part_info = (self.part_num_box.get(), self.speed_box.get(),
                               self.brand_var.get(), self.connector_var.get(),
                               self.capacity_box.get(),
                               self.description_box.get(),
                               str(bool(self.do_not_sub_var.get())).upper(),
                               str(bool(self.subbed_var.get())).upper())
-            if add_part("mem", self.part_info) == "Done":
-                messagebox.showinfo("Part Added",
-                                    self.part_num_box.get().strip() +
-                                    " has been added to the database.")
-
-        self.add_button = tk.Button(self.sub_frame, text="Add",
-                                    command=add_it)
-        self.add_button.grid(column=1, row=9, sticky="EW")
-
-    def add_cpu(self):
-        """
-        Displays GUI for the user to add a record to the "cpu" table.
-        """
-
-        self.part_num_label = tk.Label(self.sub_frame, text="Part Number: ")
-        self.part_num_label.grid(column=0, row=1)
-
-        self.part_num_box = tk.Entry(self.sub_frame)
-        self.part_num_box.grid(column=1, row=1, sticky="EW")
-
-        self.brand_label = tk.Label(self.sub_frame, text="Brand: ")
-        self.brand_label.grid(column=0, row=2)
-
-        self.brand_var = tk.StringVar()
-        self.brand_var.set("Acer")
-        self.brands = ("Acer", "Asus", "CVO", "Dell", "Hewlett Packard",
-                       "Lenovo", "Samsung", "Sony", "Toshiba")
-
-        self.brand_drop = tk.OptionMenu(self.sub_frame, self.brand_var,
-                                        *self.brands)
-        self.brand_drop.grid(column=1, row=2, sticky="EW")
-
-        self.description_label = tk.Label(self.sub_frame,
-                                          text="Description: ")
-        self.description_label.grid(column=0, row=3)
-
-        self.description_box = tk.Entry(self.sub_frame)
-        self.description_box.grid(column=1, row=3)
-
-        self.oem_label = tk.Label(self.sub_frame, text="OEM Part Number: ")
-        self.oem_label.grid(column=0, row=3)
-
-        self.oem_box = tk.Entry(self.sub_frame)
-        self.oem_box.grid(column=1, row=3)
-
-        self.do_not_sub_var = tk.BooleanVar()
-        self.do_not_sub_var.set(False)
-
-        self.do_not_sub_check = tk.Checkbutton(self.sub_frame,
-                                               text="Do Not Sub? ",
-                                               variable=self.do_not_sub_var,
-                                               offvalue=False, onvalue=True,
-                                               anchor="w")
-        self.do_not_sub_check.grid(column=1, row=7, sticky="EW")
-
-        self.subbed_var = tk.BooleanVar()
-        self.subbed_var.set(False)
-
-        self.subbed_check = tk.Checkbutton(self.sub_frame, text="Subbed? ",
-                                           variable=self.subbed_var,
-                                           offvalue=False, onvalue=True,
-                                           anchor="w")
-        self.subbed_check.grid(column=1, row=8, sticky="EW")
-
-        def add_it():
+            self.table = "mem"
+        elif self.part_types_var.get() == "CPU":
             self.part_info = (self.part_num_box.get(), self.brand_var.get(),
                               self.description_box.get(), self.oem_box.get(),
                               str(bool(self.do_not_sub_var.get())).upper(),
                               str(bool(self.subbed_var.get())).upper())
-            if add_part("cpu", self.part_info) == "Done":
-                messagebox.showinfo("Part Added",
-                                    self.part_num_box.get().strip() +
-                                    " has been added to the database.")
-
-        self.add_button = tk.Button(self.sub_frame, text="Add",
-                                    command=add_it)
-        self.add_button.grid(column=1, row=9, sticky="EW")
+            self.table = "cpu"
+        if add_part(self.table, self.part_info) == "Done":
+            messagebox.showinfo("Part Added",
+                                self.part_num_box.get().strip() +
+                                " has been added to the database.")
 
     def change_dropdown(self, *args):
         """
@@ -468,16 +394,14 @@ class AddPartPage(tk.Frame):
         all widgets are removed from sub_frame and appropriate
         method is called.
         """
-        clear_widgets(self.sub_frame)
-        if drop_down_var.get() in ["HDD", "SSD", "SSHD"]:
-            clear_widgets(self.sub_frame)
-            self.add_hdd()
-        elif drop_down_var.get() == "MEM":
-            clear_widgets(self.sub_frame)
-            self.add_mem()
-        elif drop_down_var.get() == "CPU":
-            clear_widgets(self.sub_frame)
-            self.add_cpu()
+        clear_widgets(self.type_specific_frame)
+        if self.part_types_var.get() in ["HDD", "SSD", "SSHD"]:
+            self.storage()
+        elif self.part_types_var.get() == "MEM":
+            self.memory()
+        elif self.part_types_var.get() == "CPU":
+            self.cpu()
+        self.set_label_width()
 
 
 class RemovePartPage(tk.Frame):
@@ -577,8 +501,8 @@ class EditPartPage(tk.Frame):
 
         :param updated_info: Dictionary with desired changes
         """
-        self.part_info = tuple(value.get() for key, value
-                               in updated_info.items())
+        self.part_info = tuple(value.get() for key, value in
+                               updated_info.items())
         if update_part(self.info_type_var.get().lower(),
                        self.part_info) == "Done":
             messagebox.showinfo("Part Update",
@@ -590,6 +514,8 @@ class EditPartPage(tk.Frame):
         Displays the part info in the GUI in a visually appealing
         way.  Will display an error message if the part passed to
         it is not in the database.
+        
+        :param part_num: Part number to be edited
         """
         clear_widgets(self.sub_frame)
         self.table = self.info_type_var.get().lower()
@@ -616,10 +542,14 @@ class EditPartPage(tk.Frame):
                                                      sticky="W")
                     self.updated_part_dict["brand"] = self.brand_var
                 elif key == "connector":
+                    if self.table == "hdd":
+                        connectors = ("SATA", "m.2", "eMMC", "mSATA",
+                                      "IDE", "proprietary")
+                    elif self.table == "mem":
+                        connectors = ("SO-DIMM", "UDIMM")
                     connector_var = tk.StringVar()
                     connector_var.set(self.part_info[key])
-                    connectors = ("SATA", "m.2", "eMMC", "mSATA",
-                                  "IDE", "proprietary")
+                    
                     tk.OptionMenu(self.sub_frame, connector_var,
                                   *connectors).grid(column=1, row=row_num,
                                                     sticky="W")
@@ -683,10 +613,11 @@ class SearchPage(tk.Frame):
         self.info_type_drop.grid(column=2, row=0, sticky="EW")
 
         self.info_search_button = tk.Button(self.container, text="Search",
-                                                command=lambda:
-                                                self.show_part_info(
+                                            command=lambda:
+                                            self.show_part_info(
                                                 self.info_search_box.get()
-                                                .strip())
+                                                .strip()
+                                                )
                                             )
         self.info_search_button.grid(column=3, row=0, sticky="EW")
 
@@ -760,11 +691,12 @@ class VerifySubsPage(tk.Frame):
             text="Verify",
             command=lambda:
             self.verify_sub(
-            self.subs_type_var.get().lower(),
-            self.part_num_box.get().strip(),
-            self.other_part_box.get()
-            .strip())
+                self.subs_type_var.get().lower(),
+                self.part_num_box.get().strip(),
+                self.other_part_box.get()
+                .strip()
             )
+        )
         self.subs_search_button.grid(column=1, row=2)
 
     def show_result(self, result):
@@ -831,9 +763,11 @@ class FindSubsPage(tk.Frame):
         self.subs_type_drop.grid(column=2, row=0)
 
         self.subs_search_button = tk.Button(self.search_frame, text="Search",
-                                                command=lambda:
-                                                self.find_subs(self.subs_search_box.get()
-                                                .strip())
+                                            command=lambda:
+                                            self.find_subs(
+                                                self.subs_search_box.get()
+                                                .strip()
+                                                )
                                             )
         self.subs_search_button.grid(column=3, row=0)
 
@@ -864,8 +798,10 @@ class FindSubsPage(tk.Frame):
             columns = []
             for sub in subs:
                 columns.append(sub[col_num[0]])
-                self.widths[col_num[0]] = max(len(element) for element in columns)
-            self.label_width = max(self.widths[col_num[0]], len(headers[col_num[0]]))
+                self.widths[col_num[0]] = max(len(element) for
+                                              element in columns)
+            self.label_width = max(self.widths[col_num[0]],
+                                   len(headers[col_num[0]]))
             if self.widths[col_num[0]] < self.label_width:
                 self.widths[col_num[0]] = self.label_width + 2
 
