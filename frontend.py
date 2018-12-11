@@ -1,8 +1,12 @@
 """Displays the GUI for SubHunt."""
-
 import tkinter as tk
-from tkinter import messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog
+from os.path import basename
+from openpyxl import load_workbook
+from threading import Thread
 
+from auto_hunt import (get_list, copy_file, purge_subbed, get_type,
+                       save_to_file)
 from backend import (remove_table, part_in_db, add_part, remove_part,
                      convert_to_dict, update_part, list_subs,
                      is_valid_sub, import_from_csv)
@@ -50,6 +54,9 @@ class Main(tk.Tk):
         self.search_menu.add_command(label="List Subs",
                                      command=lambda:
                                      self.show_frame("FindSubsPage"))
+        self.search_menu.add_separator()
+        self.search_menu.add_command(label="Auto Hunt",
+                                     command=self.automate_sub_hunt)
         self.menu.add_cascade(label="Search", menu=self.search_menu)
 
         self.help_menu = tk.Menu(self.menu, tearoff=False)
@@ -90,6 +97,45 @@ class Main(tk.Tk):
         if file != "":
             import_from_csv(file)
 
+    def automate_sub_hunt(self):
+        """
+        Open a dialog window to pick file for auto sub hunting then 
+        completes the auto-hunt.
+        """
+
+        def hunter_task(popup):
+            tk.Label(popup, text="Working...\n").grid(row=0,column=0)
+            progress_bar = ttk.Progressbar(popup, mode="indeterminate")
+            progress_bar.grid(row=1, column=0)
+            progress_bar.start(50)
+            popup.pack_slaves() 
+            brands = ("ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV", "RCM",
+                      "SAC", "SYC", "TSC")
+            rows = [[row[31].value, get_type(row[31].value), row[14].value,
+                     row[13].value] for
+                     row in list(sheet.rows) if
+                     row[0].value == 1320 and 
+                     get_type(row[31].value) is not None and
+                     row[21].value in brands and
+                     row[14].value is not None and
+                     row[15].value == row[14].value]
+
+            save_to_file(purge_subbed(rows))
+            popup.destroy()
+            
+        file = filedialog.askopenfilename(
+            title="Location of openPO",
+            initialdir = r"[REDACTED]\RawData",
+            filetypes=[("Excel", "*.xlsx")]
+            )
+
+        if basename(file) == "[REDACTED].xlsx":
+            workbook = load_workbook(copy_file(file), read_only=True)
+            sheet = workbook["[REDACTED]"]
+            popup = tk.Toplevel()
+            t = Thread(target=hunter_task, args=(popup,))          
+            t.start()
+
 
 class MainPage(tk.Frame):
     """Initial page.  Is blank."""
@@ -105,6 +151,7 @@ class PurgePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
+        print(str(controller))
 
         self.db_label = tk.Label(self, text="Database to purge: ")
         self.db_label.grid(column=0, row=0, sticky="EW")
@@ -514,7 +561,7 @@ class EditPartPage(tk.Frame):
         Displays the part info in the GUI in a visually appealing
         way.  Will display an error message if the part passed to
         it is not in the database.
-        
+
         :param part_num: Part number to be edited
         """
         clear_widgets(self.sub_frame)
@@ -549,7 +596,7 @@ class EditPartPage(tk.Frame):
                         connectors = ("SO-DIMM", "UDIMM")
                     connector_var = tk.StringVar()
                     connector_var.set(self.part_info[key])
-                    
+
                     tk.OptionMenu(self.sub_frame, connector_var,
                                   *connectors).grid(column=1, row=row_num,
                                                     sticky="W")

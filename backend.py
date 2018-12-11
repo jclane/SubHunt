@@ -303,8 +303,11 @@ def is_valid_sub(table, part_num, other_part_num):
     :param other_part_num: Part number to check as string
     :return: True or False
     """
-    subs = list_subs(table, part_num)
-    return any(lst[1] == other_part_num for lst in subs)
+    if part_in_db(table, part_num) and part_in_db(table, other_part_num):
+        subs = list_subs(table, part_num)
+        return any(lst[1] == other_part_num for lst in subs)
+    else:
+        return False
 
 
 def import_from_csv(file):
