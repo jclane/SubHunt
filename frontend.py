@@ -1,15 +1,21 @@
 """Displays the GUI for SubHunt."""
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
+from tkinter.ttk import Treeview, Scrollbar
 from os.path import basename
 from openpyxl import load_workbook
 from threading import Thread
+from collections import OrderedDict
+
+from csv import writer as csvwriter
 
 from auto_hunt import (get_list, copy_file, purge_subbed, get_type,
                        save_to_file)
-from backend import (remove_table, part_in_db, add_part, remove_part,
-                     convert_to_dict, update_part, list_subs,
-                     is_valid_sub, import_from_csv)
+from backend import (remove_table, return_table, return_column_names,
+                     return_possible_values, part_in_db, add_part,
+                     remove_part, convert_to_dict, update_part,
+                     list_subs, is_valid_sub, import_from_csv,
+                     filter_columns)
 
 
 def clear_widgets(frame):
@@ -54,6 +60,9 @@ class Main(tk.Tk):
         self.search_menu.add_command(label="List Subs",
                                      command=lambda:
                                      self.show_frame("FindSubsPage"))
+        self.search_menu.add_command(label="Browse",
+                                     command=lambda:
+                                     self.show_frame("BrowsePage"))                                    
         self.search_menu.add_separator()
         self.search_menu.add_command(label="Auto Hunt",
                                      command=self.automate_sub_hunt)
@@ -76,7 +85,7 @@ class Main(tk.Tk):
 
         for frame_name in (MainPage, PurgePage, AddPartPage, RemovePartPage,
                            EditPartPage, SearchPage, VerifySubsPage,
-                           FindSubsPage):
+                           FindSubsPage, BrowsePage):
             page_name = frame_name.__name__
             frame = frame_name(parent=self.container, controller=self)
             self.frames[page_name] = frame
@@ -104,12 +113,21 @@ class Main(tk.Tk):
         """
 
         def hunter_task(popup):
+            """
+            Pulls the desired orders from the open orders report and
+            displays an indeterminate progress bar to let the user know
+            that the application is not frozen.  Once done the progress
+            bar window is destroyed, purge_subbed is called and the 
+            data is saved to and Excel file.
+            
+            :param popup: Window to display the prograss bar in
+            """
             tk.Label(popup, text="Working...\n").grid(row=0,column=0)
             progress_bar = ttk.Progressbar(popup, mode="indeterminate")
             progress_bar.grid(row=1, column=0)
             progress_bar.start(50)
             popup.pack_slaves() 
-            brands = ("ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV", "RCM",
+            brands = ("ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV", "MSS", "RCM",
                       "SAC", "SYC", "TSC")
             rows = [[row[31].value, get_type(row[31].value), row[14].value,
                      row[13].value] for
@@ -125,13 +143,13 @@ class Main(tk.Tk):
             
         file = filedialog.askopenfilename(
             title="Location of openPO",
-            initialdir = r"[REDACTED]\RawData",
+            initialdir = r"\\VSP021320\GSC-Pub\Quality_Reports\Open PO Report\RawData",
             filetypes=[("Excel", "*.xlsx")]
             )
 
-        if basename(file) == "[REDACTED].xlsx":
+        if basename(file) == "rsCorpOpenPO.xlsx":
             workbook = load_workbook(copy_file(file), read_only=True)
-            sheet = workbook["[REDACTED]"]
+            sheet = workbook["rsCorpOpenPO"]
             popup = tk.Toplevel()
             t = Thread(target=hunter_task, args=(popup,))          
             t.start()
@@ -151,7 +169,6 @@ class PurgePage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        print(str(controller))
 
         self.db_label = tk.Label(self, text="Database to purge: ")
         self.db_label.grid(column=0, row=0, sticky="EW")
@@ -223,7 +240,7 @@ class AddPartPage(tk.Frame):
         self.brand_var = tk.StringVar()
         self.brand_var.set("Acer")
         self.brands = ("Acer", "Asus", "CVO", "Dell", "Hewlett Packard",
-                       "Lenovo", "Samsung", "Sony", "Toshiba")
+                       "Lenovo", "MSI", "Samsung", "Sony", "Toshiba")
         self.brand_drop = tk.OptionMenu(self.middle_frame,
                                         self.brand_var,
                                         *self.brands)
@@ -456,7 +473,6 @@ class RemovePartPage(tk.Frame):
     Displays the GUI allowing users to remove parts from the
     database.
     """
-
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
@@ -512,7 +528,7 @@ class EditPartPage(tk.Frame):
         self.container.grid(column=0, row=0, sticky="EW")
         self.sub_frame = tk.Frame(self)
         self.sub_frame.grid(column=0, row=1, sticky="EW")
-        self.updated_part_dict = {}
+        self.updated_part_dict = OrderedDict()
 
         self.info_search_label = tk.Label(self.container,
                                           text="Enter Part Number: ")
@@ -582,7 +598,7 @@ class EditPartPage(tk.Frame):
                     self.brand_var = tk.StringVar()
                     self.brand_var.set(self.part_info[key])
                     self.brands = ("Acer", "Asus", "CVO", "Dell",
-                                   "Hewlett Packard", "Lenovo", "Samsung",
+                                   "Hewlett Packard", "Lenovo", "MSI", "Samsung",
                                    "Sony", "Toshiba")
                     tk.OptionMenu(self.sub_frame, self.brand_var,
                                   *self.brands).grid(column=1, row=row_num,
@@ -807,7 +823,7 @@ class FindSubsPage(tk.Frame):
         self.subs_type_drop = tk.OptionMenu(self.search_frame,
                                             self.subs_type_var,
                                             *self.subs_types)
-        self.subs_type_drop.grid(column=2, row=0)
+        self.subs_type_drop.grid(column=2, row=0)      
 
         self.subs_search_button = tk.Button(self.search_frame, text="Search",
                                             command=lambda:
@@ -817,7 +833,7 @@ class FindSubsPage(tk.Frame):
                                                 )
                                             )
         self.subs_search_button.grid(column=3, row=0)
-
+                
     def make_table(self, table, subs):
         """
         Displays list of a subs in a spreadsheet
@@ -898,3 +914,111 @@ class FindSubsPage(tk.Frame):
             messagebox.showerror("Invalid Entry",
                                  part_num +
                                  " does not exist in the database.")
+
+                                 
+class BrowsePage(tk.Frame):
+
+    def __init__(self, parent, controller):
+        self.specs = []
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+        self.title = "SubHunt | Browse"
+        
+        self.type_frame = tk.Frame(self)
+        self.type_frame.grid(column=0, row=0, sticky="EW")
+        
+        self.filter_frame = tk.Frame(self)
+        self.filter_frame.grid(column=0, row=1, sticky="EW")
+        
+        self.results = tk.Frame(self)
+        self.results.grid(column=0, row=2, padx=20, pady=10, sticky="NSEW")
+        self.results.columnconfigure(0, weight=1)
+        self.results.rowconfigure(0, weight=1)
+        
+        self.table_var = tk.StringVar()
+        self.tables = ("HDD", "MEM", "CPU")
+        
+        self.table_type_drop = tk.OptionMenu(self.type_frame,
+                                            self.table_var,
+                                            *self.tables)
+        self.table_type_drop.grid(column=0, row=0)  
+        
+        self.table_var.trace('w', self.handle_table_change)
+        
+        self.table_var.set("HDD")
+
+        
+    def make_table(self, table, parts):
+        """
+        Displays list of a parts from a table in a spreadsheet
+        like manner.
+
+        :param table: Name of database table
+        :param parts: List of parts
+            of part_num
+        """
+        clear_widgets(self.filter_frame)
+        clear_widgets(self.results)
+        
+        # Would you be better off just pulling the column headers
+        # from the table?
+        if table in ("HDD", "SSHD", "SSD"):
+            headers = ["Part Number", "Brand", "Connector", 
+                       "HDD size (GB)", "SSD size (GB)", "Speed",
+                       "Type", "Physical Size", "Height", "PCIe/SATA",
+                       "Description", "Do Not Sub", "Subbed?"]
+        elif table == "MEM":
+            headers = ["Part Number", "Speed", "Connector",
+                       "Capacity", "Subbed?"]
+        elif table == "CPU":
+            headers = ["Part Number", "Brand", "Description", "OEM",
+                       "Do Not Sub", "Subbed?"]
+
+        self.results_tv = Treeview(self.results, columns=headers)
+        self.results_tv.pack(expand=True, fill="y")
+        
+        vsb = Scrollbar(self.results_tv, orient="vertical",
+                        command=self.results_tv.yview)
+                  
+        vsb.place(x=200, y=300, height=704)
+        for header in enumerate(headers):
+            self.results_tv.column("#" + str(header[0]), width=len(header[1] * 10))
+            self.results_tv.heading("#" + str(header[0]), text=header[1])
+        
+        self.results_tv.column("#" + str(len(headers)), minwidth=0, width=0)
+        
+        for part in parts:
+            self.results_tv.insert('', tk.END, text=part[0], values=part[1:])
+        
+        self.make_buttons(table)
+        
+    def make_buttons(self, table):
+        """
+        Make buttons for filtering data
+        
+        :param table:  Table in sqlite3 db
+        """
+        self.var_dict = {}        
+        columns = return_column_names(table)
+        for column_name in enumerate(columns):
+            self.var_dict[column_name[1]] = tk.StringVar()
+            self.var_dict[column_name[1]].set(column_name[1])
+            tk.OptionMenu(self.filter_frame, self.var_dict[column_name[1]], *return_possible_values(table, column_name[1])).grid(column=column_name[0], row=0)
+            self.var_dict[column_name[1]].trace("w", lambda *_, col_name=column_name[1]: self.handle_filter_change(col_name))
+            
+    def handle_filter_change(self, *args):
+        column_name = args[0]
+        multi_filter = {}
+        for k, v in self.var_dict.items():
+            if v.get() == "":
+              v.get() == k
+            if k != v.get():
+              multi_filter[k] = v.get()
+        parts = filter_columns(self.table_var.get(), multi_filter)
+        self.results_tv.delete(*self.results_tv.get_children())
+        for part in parts:
+          self.results_tv.insert("", tk.END, text=part[0], values=part[1:])
+                
+    def handle_table_change(self, *args):
+        parts = return_table(self.table_var.get())
+        self.make_table(self.table_var.get(), parts)
