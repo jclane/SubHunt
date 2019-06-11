@@ -143,13 +143,13 @@ class Main(tk.Tk):
             
         file = filedialog.askopenfilename(
             title="Location of openPO",
-            initialdir = r"\\VSP021320\GSC-Pub\Quality_Reports\Open PO Report\RawData",
+            initialdir = r"[REDACTED]\RawData",
             filetypes=[("Excel", "*.xlsx")]
             )
 
-        if basename(file) == "rsCorpOpenPO.xlsx":
+        if basename(file) == "[REDACTED].xlsx":
             workbook = load_workbook(copy_file(file), read_only=True)
-            sheet = workbook["rsCorpOpenPO"]
+            sheet = workbook["[REDACTED]"]
             popup = tk.Toplevel()
             t = Thread(target=hunter_task, args=(popup,))          
             t.start()
