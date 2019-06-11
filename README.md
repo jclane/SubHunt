@@ -2,8 +2,11 @@
 
 Originally I was using a MS Access database to keep track of various PC parts currently in our main database.  The main parts database does not allow me to narrow parts down to their specs.  A CPU is a CPU is a CPU you might say.  This made finding parts that could be subbed for one another tedious.  This app allows me to input part numbers and their specifications making that task much more efficient (and without the performance issues I had with MS Access).
 
-## Dec. 11 2018
-I've been using the fairly regularly now, but eventually I got tired of manually pulling the part orders report and using a VBA script to get a list of harddrives, memory, and CPUs to check.  I've not added an "Auto Hunt" feature under search that will pull the report, match parts on order against the all known HDDs, CPUs, and MEM and finally check if they need to be added to the database or need sub.  If so, they will be saved to an Excel file along with the order number (for non-warranty) so the part can be reordered once the sub has been added.
+### Jun. 11 2019
+Finally added a "browse" page so I can see everything in the database (and filter it!).
+
+### Dec. 11 2018
+I've been using this fairly regularly now, but eventually I got tired of manually pulling the part orders report and using a VBA script to get a list of harddrives, memory, and CPUs to check.  I've not added an "Auto Hunt" feature under search that will pull the report, match parts on order against the all known HDDs, CPUs, and MEM and finally check if they need to be added to the database or need sub.  If so, they will be saved to an Excel file along with the order number (for non-warranty) so the part can be reordered once the sub has been added.
 
 Also, the progress bar took longer than I'd like to admit.
 

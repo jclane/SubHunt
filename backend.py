@@ -2,6 +2,7 @@
 
 import sqlite3
 import csv
+from collections import OrderedDict
 from os.path import basename
 
 
@@ -74,6 +75,60 @@ def remove_table(table):
         return e
 
 
+def return_table(table):
+    """
+    Return table.
+    
+    :param table:  Table to be returned
+    """      
+    conn = create_connection()
+    
+    cur = conn.cursor()
+    sql = "SELECT * FROM " + table 
+    cur.execute(sql)
+    results = cur.fetchall()
+    close_connection(conn)
+
+    return results
+    
+  
+def return_column_names(table):
+    """
+    Return all column names from table
+    
+    :param table:  Table to pull column names from
+    """
+    conn = create_connection()
+    
+    cur = conn.cursor()
+    sql = "SELECT * FROM " + table
+    cur.execute(sql)
+    names = [description[0] for description in cur.description]
+    close_connection(conn)
+    return names
+    
+
+def return_possible_values(table, column):
+    """
+    Return all possible values from a column in table.
+    
+    :param table:  Table to search
+    :param column:  Column with the values we want
+    :return result:  List of values in column
+    """
+    conn = create_connection()
+    
+    cur = conn.cursor()
+    values = [value[0] for value in cur.execute("SELECT " + column + " FROM " + table)]
+    close_connection(conn)
+    result = []
+    for value in values:
+      if value not in result:
+        result.append(value)
+    
+    return sorted(result)
+
+            
 def part_in_db(table, part_num):
     """
     Checks to see if part exists in the database.
@@ -116,8 +171,23 @@ def search_part(table, part):
             return None
     else:
         print("Error! Unable to connect to the database.")
+        
 
-
+def filter_columns(table, dict):
+    conn = create_connection()
+    
+    sql_fragments = []
+    for k, v in dict.items():
+        sql_fragments.append(k + " = '" + v + "'")
+               
+    if conn is not None:
+        cur = conn.cursor()
+        sql = "SELECT * FROM " + table.lower() + " WHERE " + " AND ".join(sql_fragments)
+        cur.execute(sql)
+        result = cur.fetchall()
+        close_connection(conn)
+        return result
+        
 def add_part(table, part_info):
     """
     Adds part to the SQLite3 database.
@@ -192,7 +262,7 @@ def convert_to_dict(table, part_num):
         cur.execute("SELECT * FROM " + table + ";")
         headers = [list[0] for list in cur.description]
         part_info = search_part(table, part_num)
-        part_dict = dict(zip(headers, part_info))
+        part_dict = OrderedDict(zip(headers, part_info))
         close_connection(conn)
         return part_dict
     else:
