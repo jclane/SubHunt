@@ -7,7 +7,6 @@ from openpyxl import load_workbook
 from threading import Thread
 from collections import OrderedDict
 
-from csv import writer as csvwriter
 
 from auto_hunt import (get_list, copy_file, purge_subbed, get_type,
                        save_to_file)
@@ -15,7 +14,7 @@ from backend import (remove_table, return_table, return_column_names,
                      return_possible_values, part_in_db, add_part,
                      remove_part, convert_to_dict, update_part,
                      list_subs, is_valid_sub, import_from_csv,
-                     filter_columns)
+                     filter_columns, csv_writer)
 
 
 def clear_widgets(frame):
@@ -74,7 +73,6 @@ class Main(tk.Tk):
         self.menu.add_cascade(label="?", menu=self.help_menu)
 
         self.config(menu=self.menu)
-        self.geometry("860x525")
 
         self.container = tk.Frame(self)
         self.container.grid(column=0, row=0, sticky="EW")
@@ -845,6 +843,7 @@ class FindSubsPage(tk.Frame):
             of part_num
         """
         clear_widgets(self.results)
+        
         if table == "hdd":
             headers = ["Brand", "Part Number", "Type", "Deminsions",
                        "Height", "Connector", "HDD (GB)", "SSD (GB)",
@@ -917,13 +916,14 @@ class FindSubsPage(tk.Frame):
 
                                  
 class BrowsePage(tk.Frame):
-
+    """
+    Displays treeview with all parts listed for a given table.
+    """
     def __init__(self, parent, controller):
         self.specs = []
         tk.Frame.__init__(self, parent)
         self.controller = controller
-        self.title = "SubHunt | Browse"
-        
+
         self.type_frame = tk.Frame(self)
         self.type_frame.grid(column=0, row=0, sticky="EW")
         
@@ -960,32 +960,20 @@ class BrowsePage(tk.Frame):
         clear_widgets(self.filter_frame)
         clear_widgets(self.results)
         
-        # Would you be better off just pulling the column headers
-        # from the table?
-        if table in ("HDD", "SSHD", "SSD"):
-            headers = ["Part Number", "Brand", "Connector", 
-                       "HDD size (GB)", "SSD size (GB)", "Speed",
-                       "Type", "Physical Size", "Height", "PCIe/SATA",
-                       "Description", "Do Not Sub", "Subbed?"]
-        elif table == "MEM":
-            headers = ["Part Number", "Speed", "Connector",
-                       "Capacity", "Subbed?"]
-        elif table == "CPU":
-            headers = ["Part Number", "Brand", "Description", "OEM",
-                       "Do Not Sub", "Subbed?"]
+        self.headers = return_column_names(table)
 
-        self.results_tv = Treeview(self.results, columns=headers)
+        self.results_tv = Treeview(self.results, columns=self.headers, height=20)
         self.results_tv.pack(expand=True, fill="y")
         
         vsb = Scrollbar(self.results_tv, orient="vertical",
                         command=self.results_tv.yview)
-                  
-        vsb.place(x=200, y=300, height=704)
-        for header in enumerate(headers):
+        vsb.place(x=1, y=25, height=400)
+
+        for header in enumerate(self.headers):
             self.results_tv.column("#" + str(header[0]), width=len(header[1] * 10))
             self.results_tv.heading("#" + str(header[0]), text=header[1])
         
-        self.results_tv.column("#" + str(len(headers)), minwidth=0, width=0)
+        self.results_tv.column("#" + str(len(self.headers)), minwidth=0, width=0)
         
         for part in parts:
             self.results_tv.insert('', tk.END, text=part[0], values=part[1:])
@@ -1003,21 +991,40 @@ class BrowsePage(tk.Frame):
         for column_name in enumerate(columns):
             self.var_dict[column_name[1]] = tk.StringVar()
             self.var_dict[column_name[1]].set(column_name[1])
-            tk.OptionMenu(self.filter_frame, self.var_dict[column_name[1]], *return_possible_values(table, column_name[1])).grid(column=column_name[0], row=0)
-            self.var_dict[column_name[1]].trace("w", lambda *_, col_name=column_name[1]: self.handle_filter_change(col_name))
-            
+            _  = tk.OptionMenu(self.filter_frame,
+                               self.var_dict[column_name[1]],
+                               *return_possible_values(table,
+                               column_name[1]))
+            _.configure(width=len(column_name[1]))
+            _.grid(column=column_name[0], row=0, sticky="EW")
+            self.var_dict[column_name[1]].trace("w", self.handle_filter_change)
+        tk.Button(self.type_frame, text="Export", command=self.save_to_file).grid(column=2, row=0)
+
+    def handle_reset(self):
+        clear_widgets(self.filter_frame)
+        self.make_buttons(self.table_var.get())
+        self.handle_table_change()
+    
+    def save_to_file(self):
+        rows = [self.headers]
+        for child in self.results_tv.get_children():
+            _templst = self.results_tv.item(child)["values"]
+            _templst.insert(0, self.results_tv.item(child)["text"])
+            rows.append(_templst)
+        print(rows)
+        csv_writer("exported_list.csv", rows)
+    
     def handle_filter_change(self, *args):
-        column_name = args[0]
         multi_filter = {}
         for k, v in self.var_dict.items():
-            if v.get() == "":
-              v.get() == k
             if k != v.get():
               multi_filter[k] = v.get()
         parts = filter_columns(self.table_var.get(), multi_filter)
         self.results_tv.delete(*self.results_tv.get_children())
         for part in parts:
           self.results_tv.insert("", tk.END, text=part[0], values=part[1:])
+          
+        tk.Button(self.type_frame, text="Clear Filters", command=self.handle_reset).grid(column=1, row=0)
                 
     def handle_table_change(self, *args):
         parts = return_table(self.table_var.get())

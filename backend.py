@@ -1,7 +1,8 @@
 """Handles the sqlite3 database."""
 
 import sqlite3
-import csv
+from csv import DictReader as csv_DictReader
+from csv import writer as csvwriter
 from collections import OrderedDict
 from os.path import basename
 
@@ -123,7 +124,7 @@ def return_possible_values(table, column):
     close_connection(conn)
     result = []
     for value in values:
-      if value not in result:
+      if value not in result and value != "":
         result.append(value)
     
     return sorted(result)
@@ -175,7 +176,6 @@ def search_part(table, part):
 
 def filter_columns(table, dict):
     conn = create_connection()
-    
     sql_fragments = []
     for k, v in dict.items():
         sql_fragments.append(k + " = '" + v + "'")
@@ -187,7 +187,8 @@ def filter_columns(table, dict):
         result = cur.fetchall()
         close_connection(conn)
         return result
-        
+   
+   
 def add_part(table, part_info):
     """
     Adds part to the SQLite3 database.
@@ -391,7 +392,7 @@ def import_from_csv(file):
     if conn is not None:
         table = basename(file).lower()[:-4]
         with open(file, "r") as csvfile:
-            reader = csv.DictReader(csvfile)
+            reader = csv_DictReader(csvfile)
             first_row = next(reader)
             headers = [header for header, value in first_row.items()]
             headers[0] = "part_num PRIMARY KEY"
@@ -417,3 +418,9 @@ def import_from_csv(file):
             close_connection(conn)
     else:
         print("Error! Unable to connect to the database.")
+
+        
+def csv_writer(file, rows):
+    with open(file, "w", newline="") as csvfile:
+        writer = csvwriter(csvfile)
+        writer.writerows(rows)
