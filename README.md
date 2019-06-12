@@ -2,6 +2,9 @@
 
 Originally I was using a MS Access database to keep track of various PC parts currently in our main database.  The main parts database does not allow me to narrow parts down to their specs.  A CPU is a CPU is a CPU you might say.  This made finding parts that could be subbed for one another tedious.  This app allows me to input part numbers and their specifications making that task much more efficient (and without the performance issues I had with MS Access).
 
+## Jun. 12 2019
+Added the ability to export results in treeview of "browse" page.
+
 ### Jun. 11 2019
 Finally added a "browse" page so I can see everything in the database (and filter it!).
 
