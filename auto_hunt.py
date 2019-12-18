@@ -30,10 +30,9 @@ def copy_file(original):
     copy.
 
     :param original: Path of the file to be copied
-    :return: Path of the newly created local copy
+    :return: Path for the new local copy
     """
-    local_copy = r"[REDACTED]" + \
-                 str(dt.date.today()) + ".xlsx"
+    local_copy = pathjoin(r"openPO Reports", "openPO " + str(dt.date.today()) + ".xlsx")
 
     copyfile(original, local_copy)
     return local_copy
@@ -64,7 +63,7 @@ def get_type(part_num):
 def purge_subbed(part_nums):
     """
     Loops through part_nums and checks if the part number is
-    in the database and if not, adds it to the clean list. Also
+    in the database and if not, adds it to clean_list. Also
     calls convert_to_dict to check if part number has a sub.
     If not, the part is added to the clean_list.
 
@@ -76,12 +75,11 @@ def purge_subbed(part_nums):
     for part_num in part_nums:
         if (search_part(part_num[1].lower(), part_num[0]) is None and
                 part_num not in clean_list):
-            part_num.append("+DB")
             clean_list.append(part_num)
-        elif (convert_to_dict(part_num[1].lower(), part_num[0])
-              ["subbed"] == "FALSE"):
-            part_num.append("+SUB")
-            clean_list.append(part_num)
+        elif (search_part(part_num[1].lower(), part_num[0]) is not None):
+            part_dict = convert_to_dict(part_num[1].lower(), part_num[0])
+            if (part_dict["subbed"] == "FALSE" and part_dict["do_not_sub"] == "FALSE"):
+                clean_list.append(part_num)
 
     return clean_list
 
@@ -93,7 +91,7 @@ def save_to_file(part_nums):
     Excel file.
 
     :param part_nums: List of part numbers to be saved
-    :return: 'Done' or error message if file is open
+    :return: 'Done'
     """
 
     def build_sheets():
@@ -103,13 +101,11 @@ def save_to_file(part_nums):
         """
         parts_seen = []
         add_to_sheet2 = []
-
         # Populating cell data for 'Needs Sub' sheet
         headings = ["Part Num", "Type"]
         for heading in enumerate(headings):
             worksheet1.cell(row=1, column=heading[0] + 1,
                             value=heading[1])
-
         row_num = 2
         for row in part_nums:
             if row[2] != "MFG Warranty":
@@ -134,7 +130,7 @@ def save_to_file(part_nums):
                                     value=element[1])
 
     path = pathjoin(
-        r"[REDACTED]\hunts",
+        r"hunts",
         str(dt.date.today()) + " hunt.xlsx"
         )
     workbook = Workbook()
