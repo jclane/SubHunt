@@ -1,5 +1,4 @@
 """Handles the sqlite3 database."""
-
 import sqlite3
 from csv import DictReader as csv_DictReader
 from csv import writer as csvwriter
@@ -16,7 +15,7 @@ def create_connection():
     try:
         conn = sqlite3.connect(r"db\parts.db")
         return conn
-    except Error as e:
+    except Exception as e:
         print(repr(e))
 
     return None
@@ -31,7 +30,7 @@ def close_connection(conn):
     try:
         conn.commit()
         conn.close()
-    except Error as e:
+    except Exception as e:
         print(repr(e))
 
 
@@ -50,7 +49,7 @@ def create_table(create_table_sql):
             cur.execute(create_table_sql)
             close_connection(conn)
             return True
-        except Error as e:
+        except Exception as e:
             print(e)
     else:
         print("Error! Unable to establish connection to the database.")
@@ -71,65 +70,65 @@ def remove_table(table):
             close_connection(conn)
             return True
         else:
-            raise OperationalError
-    except OperationalError as e:
+            raise sqlite3.OperationalError
+    except sqlite3.OperationalError as e:
         return e
 
 
 def return_table(table):
     """
     Return table.
-    
+
     :param table:  Table to be returned
-    """      
+    """
     conn = create_connection()
-    
+
     cur = conn.cursor()
-    sql = "SELECT * FROM " + table 
+    sql = "SELECT * FROM " + table
     cur.execute(sql)
     results = cur.fetchall()
     close_connection(conn)
 
     return results
-    
-  
+
+
 def return_column_names(table):
     """
     Return all column names from table
-    
+
     :param table:  Table to pull column names from
     """
     conn = create_connection()
-    
+
     cur = conn.cursor()
     sql = "SELECT * FROM " + table
     cur.execute(sql)
     names = [description[0] for description in cur.description]
     close_connection(conn)
     return names
-    
+
 
 def return_possible_values(table, column):
     """
     Return all possible values from a column in table.
-    
+
     :param table:  Table to search
     :param column:  Column with the values we want
     :return result:  List of values in column
     """
     conn = create_connection()
-    
+
     cur = conn.cursor()
     values = [value[0] for value in cur.execute("SELECT " + column + " FROM " + table)]
     close_connection(conn)
     result = []
     for value in values:
-      if value not in result and value != "":
-        result.append(value)
-    
+        if value not in result and value != "":
+            result.append(value)
+
     return sorted(result)
 
-            
+
 def part_in_db(table, part_num):
     """
     Checks to see if part exists in the database.
@@ -163,8 +162,7 @@ def search_part(table, part):
         cur = conn.cursor()
 
         if part_in_db(table, part):
-            cur.execute("SELECT * FROM " + table + " WHERE part_num = ?",
-                        (part,))
+            cur.execute("SELECT * FROM " + table + " WHERE part_num = ?", (part,))
             result = cur.fetchone()
             close_connection(conn)
             return result
@@ -172,14 +170,20 @@ def search_part(table, part):
             return None
     else:
         print("Error! Unable to connect to the database.")
-        
 
-def filter_columns(table, dict):
+
+def filter_columns(table, my_dict):
+    """
+    Selects all records from db table where my_dict[column] = "desired value"
+
+    :param table:  Table we're filtering
+    :param my_dcit: Dictionary of columns and desired values
+    """
     conn = create_connection()
     sql_fragments = []
-    for k, v in dict.items():
+    for k, v in my_dict.items():
         sql_fragments.append(k + " = '" + v + "'")
-               
+
     if conn is not None:
         cur = conn.cursor()
         sql = "SELECT * FROM " + table.lower() + " WHERE " + " AND ".join(sql_fragments)
@@ -187,8 +191,8 @@ def filter_columns(table, dict):
         result = cur.fetchall()
         close_connection(conn)
         return result
-   
-   
+
+
 def add_part(table, part_info):
     """
     Adds part to the SQLite3 database.
@@ -201,22 +205,47 @@ def add_part(table, part_info):
     if conn is not None:
         cur = conn.cursor()
         if table.startswith("hdd"):
-            headers = ["part_num PRIMARY KEY", "brand", "connector",
-                       "hdd_capacity", "ssd_capacity", "speed", "type",
-                       "physical_size", "height", "interface", "description",
-                       "do_not_sub", "subbed"]
+            headers = [
+                "part_num PRIMARY KEY",
+                "brand",
+                "connector",
+                "hdd_capacity",
+                "ssd_capacity",
+                "speed",
+                "type",
+                "physical_size",
+                "height",
+                "interface",
+                "description",
+                "do_not_sub",
+                "subbed",
+            ]
         if table.startswith("mem"):
-            headers = ["part_num PRIMARY KEY", "speed", "brand", "connector",
-                       "capacity", "description", "do_not_sub", "subbed"]
+            headers = [
+                "part_num PRIMARY KEY",
+                "speed",
+                "brand",
+                "connector",
+                "capacity",
+                "description",
+                "do_not_sub",
+                "subbed",
+            ]
         if table.startswith("cpu"):
-            headers = ["part_num PRIMARY KEY", "brand", "description",
-                       "oem_part_num", "do_not_sub", "subbed"]
-        create_table("CREATE TABLE IF NOT EXISTS " + table + "(" +
-                     ",".join(headers) + ");")
+            headers = [
+                "part_num PRIMARY KEY",
+                "brand",
+                "description",
+                "oem_part_num",
+                "do_not_sub",
+                "subbed",
+            ]
+        create_table(
+            "CREATE TABLE IF NOT EXISTS " + table + "(" + ",".join(headers) + ");"
+        )
         cur.execute("SELECT * FROM " + table + ";")
         columns = ["?" for list in cur.description]
-        sql = "INSERT OR IGNORE INTO " + table + " VALUES (" + \
-              ",".join(columns) + ");"
+        sql = "INSERT OR IGNORE INTO " + table + " VALUES (" + ",".join(columns) + ");"
         cur.execute(sql, part_info)
         close_connection(conn)
         return "Done"
@@ -237,7 +266,6 @@ def remove_part(table, part_num):
         if part_in_db(table, part_num):
             cur = conn.cursor()
             cur.execute("SELECT * FROM " + table + ";")
-            columns = ["?" for list in cur.description]
             sql = "DELETE FROM " + table + " WHERE part_num = ?"
             cur.execute(sql, (part_num,))
             close_connection(conn)
@@ -282,8 +310,7 @@ def update_part(table, part_info):
         cur = conn.cursor()
         cur.execute("SELECT * FROM " + table + ";")
         columns = ["?" for list in cur.description]
-        sql = "REPLACE INTO " + table + " VALUES (" + \
-              ",".join(columns) + ");"
+        sql = "REPLACE INTO " + table + " VALUES (" + ",".join(columns) + ");"
         cur.execute(sql, part_info)
         close_connection(conn)
         return "Done"
@@ -313,49 +340,78 @@ def list_subs(table, part_num):
         part_dict = convert_to_dict(table, part_num)
         if table.startswith("hdd"):
             if part_dict["connector"] == "m.2":
-                sql = "SELECT brand, part_num, type, physical_size, height, \
+                sql = (
+                    "SELECT brand, part_num, type, physical_size, height, \
                        connector, hdd_capacity, ssd_capacity, speed, subbed \
-                       FROM " + table + " WHERE (brand = 'CVO' OR brand = ?) \
+                       FROM "
+                    + table
+                    + " WHERE (brand = 'CVO' OR brand = ?) \
                        AND type = ? AND physical_size = ? AND connector = ? \
                        AND ssd_capacity = ? AND do_not_sub = 'FALSE' \
                        AND interface like ?"
-                values = (part_dict["brand"], part_dict["type"],
-                          part_dict["physical_size"],
-                          part_dict["connector"],
-                          part_dict["ssd_capacity"],
-                          part_dict["interface"][:1] + "%")
+                )
+                values = (
+                    part_dict["brand"],
+                    part_dict["type"],
+                    part_dict["physical_size"],
+                    part_dict["connector"],
+                    part_dict["ssd_capacity"],
+                    part_dict["interface"][:1] + "%",
+                )
             else:
-                sql = "SELECT brand, part_num, type, physical_size, height, \
+                sql = (
+                    "SELECT brand, part_num, type, physical_size, height, \
                        connector, hdd_capacity, ssd_capacity, speed, subbed \
-                       FROM " + table + " WHERE (brand = 'CVO' OR brand = ?) \
+                       FROM "
+                    + table
+                    + " WHERE (brand = 'CVO' OR brand = ?) \
                        AND type = ? AND physical_size = ? AND (height = '' \
                        OR height = ?) AND connector = ? AND hdd_capacity = ? \
                        AND ssd_capacity = ? AND speed = ? \
                        AND do_not_sub = 'FALSE'"
-                values = (part_dict["brand"], part_dict["type"],
-                          part_dict["physical_size"],
-                          part_dict["height"],
-                          part_dict["connector"],
-                          part_dict["hdd_capacity"],
-                          part_dict["ssd_capacity"],
-                          part_dict["speed"])
+                )
+                values = (
+                    part_dict["brand"],
+                    part_dict["type"],
+                    part_dict["physical_size"],
+                    part_dict["height"],
+                    part_dict["connector"],
+                    part_dict["hdd_capacity"],
+                    part_dict["ssd_capacity"],
+                    part_dict["speed"],
+                )
             cur.execute(sql, values)
-            #results = [list(filter(None, lst)) for lst in cur.fetchall()]
+            # results = [list(filter(None, lst)) for lst in cur.fetchall()]
             results = cur.fetchall()
             return sort_results(results)
         if table.startswith("mem"):
-            sql = "SELECT brand, part_num, connector, capacity, speed, subbed \
-                   FROM " + table + " WHERE (brand = 'CVO' OR brand = ?) AND \
+            sql = (
+                "SELECT brand, part_num, connector, capacity, speed, subbed \
+                   FROM "
+                + table
+                + " WHERE (brand = 'CVO' OR brand = ?) AND \
                    connector = ? AND capacity = ? AND speed = ? AND \
                    do_not_sub = 'FALSE'"
-            cur.execute(sql, (part_dict["brand"], part_dict["connector"],
-                              part_dict["capacity"], part_dict["speed"]))
+            )
+            cur.execute(
+                sql,
+                (
+                    part_dict["brand"],
+                    part_dict["connector"],
+                    part_dict["capacity"],
+                    part_dict["speed"],
+                ),
+            )
             results = cur.fetchall()
             return sort_results(results)
         if table.startswith("cpu"):
-            sql = "SELECT brand, part_num, oem_part_num, description, subbed \
-                   FROM " + table + " WHERE (brand = 'GPC' or brand = ?) AND \
+            sql = (
+                "SELECT brand, part_num, oem_part_num, description, subbed \
+                   FROM "
+                + table
+                + " WHERE (brand = 'GPC' or brand = ?) AND \
                     oem_part_num = ? AND do_not_sub = 'FALSE'"
+            )
             cur.execute(sql, (part_dict["brand"], part_dict["oem_part_num"]))
             results = cur.fetchall()
         close_connection(conn)
@@ -397,8 +453,9 @@ def import_from_csv(file):
             headers = [header for header, value in first_row.items()]
             headers[0] = "part_num PRIMARY KEY"
 
-            create_table("CREATE TABLE IF NOT EXISTS " + table + "(" +
-                         ",".join(headers) + ");")
+            create_table(
+                "CREATE TABLE IF NOT EXISTS " + table + "(" + ",".join(headers) + ");"
+            )
 
             to_import = [list(row.values()) for row in reader]
             to_import.append(list(first_row.values()))
@@ -412,15 +469,27 @@ def import_from_csv(file):
 
             cur = conn.cursor()
             columns = ["?" for item in headers]
-            cur.executemany("INSERT OR IGNORE INTO " + table + " VALUES (" +
-                            ",".join(columns) + ")", to_import)
+            cur.executemany(
+                "INSERT OR IGNORE INTO "
+                + table
+                + " VALUES ("
+                + ",".join(columns)
+                + ")",
+                to_import,
+            )
 
             close_connection(conn)
     else:
         print("Error! Unable to connect to the database.")
 
-        
+
 def csv_writer(file, rows):
+    """
+    Writes rows file
+
+    :param file: File to write to
+    :param rows: Row data to write
+    """
     with open(file, "w", newline="") as csvfile:
         writer = csvwriter(csvfile)
         writer.writerows(rows)
