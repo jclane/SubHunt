@@ -125,7 +125,7 @@ def save_to_file(part_nums):
                 worksheet2.cell(row=1, column=heading[0] + 1,
                                 value=heading[1])
             for row in enumerate(add_to_sheet2):
-                for element in enumerate(row[1][:-1]):
+                for element in enumerate(row[1]):
                     worksheet2.cell(row=row[0] + 2, column=element[0] + 1,
                                     value=element[1])
 
