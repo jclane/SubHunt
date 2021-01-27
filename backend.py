@@ -2,6 +2,7 @@
 import sqlite3
 from csv import DictReader as csv_DictReader
 from csv import writer as csvwriter
+from csv import reader as csvreader
 from collections import OrderedDict
 from os.path import basename
 

@@ -1,5 +1,6 @@
 """Displays the GUI for SubHunt."""
 import tkinter as tk
+from csv import reader as csvreader
 from tkinter import ttk, messagebox, filedialog
 from tkinter.ttk import Treeview, Scrollbar
 from os.path import basename
@@ -7,7 +8,7 @@ from openpyxl import load_workbook
 from threading import Thread
 from collections import OrderedDict
 
-from auto_hunt import get_list, copy_file, purge_subbed, get_type, save_to_file
+from auto_hunt import copy_file, purge_subbed, get_type, save_to_file, get_all_parts
 from backend import (
     remove_table,
     return_table,
@@ -129,7 +130,69 @@ class Main(tk.Tk):
         completes the auto-hunt.
         """
 
-        def hunter_task(popup):
+        def validate(row, all_parts):
+            repair_locs = ["1320", "622", "630", "68", "67",
+                            "69", "610", "615", "618", "624"]
+            brands = ("ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV",
+                      "MSS", "RCM", "RZR", "SAC", "SYC", "TSC",)
+
+            if row[0] not in repair_locs:
+                return False
+            if get_type(row[31], all_parts) is None:
+                return False
+            if row[21] not in brands:
+                return False
+            if row[14] is None:
+                return False
+            if row[15] != row[14]:
+                return False
+                
+            return True
+
+        def filter_data(data, all_parts):         
+            filtered = [
+                [row[31], get_type(row[31], all_parts), row[14], row[13]]
+                for row in data if validate(row, all_parts)
+            ]
+            
+            return filtered
+
+        def get_data():
+            """
+            Opens a menu to select the openPO report text file.  
+            The file is then copied and the contents returned as a 
+            list of rows.
+            """
+            file = filedialog.askopenfilename(
+                title="Location of openPO",
+                initialdir=r"%USER%\Desktop",
+                filetypes=[("Plain Text", "*.txt"), ("CSV", "*.csv"),],
+            )            
+            
+            if file:
+                copied = copy_file(file)
+            
+            data = []
+            with open(file, "r") as csvfile:
+                reader = csvreader(csvfile, delimiter="\t")
+                for row in reader:
+                    data.append(row)
+            
+            return data
+ 
+        def show_done():
+            """
+            Popup window informing the user that autohunt has finished.
+            """
+            popup = tk.Tk()
+            popup.wm_title("!")
+            label = ttk.Label(popup, text="DONE!", font=("Helvetica", 10))
+            label.pack(side="top", fill="x", pady=10)
+            B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
+            B1.pack()
+            popup.mainloop()
+ 
+        def hunter_task(popup, data):
             """
             Pulls the desired orders from the open orders report and
             displays an indeterminate progress bar to let the user know
@@ -144,46 +207,17 @@ class Main(tk.Tk):
             progress_bar.grid(row=1, column=0)
             progress_bar.start(50)
             popup.pack_slaves()
-            brands = (
-                "ACE",
-                "ALI",
-                "ASU",
-                "DEL",
-                "GWY",
-                "HEW",
-                "LNV",
-                "MSS",
-                "RCM",
-                "RZR",
-                "SAC",
-                "SYC",
-                "TSC",
-            )
-            rows = [
-                [row[31].value, get_type(row[31].value), row[14].value, row[13].value]
-                for row in list(sheet.rows)
-                if row[0].value == 1320
-                and get_type(row[31].value) is not None
-                and row[21].value in brands
-                and row[14].value is not None
-                and row[15].value == row[14].value
-            ]
+            all_parts = get_all_parts()           
+            filtered = filter_data(data[1:], all_parts)           
 
-            save_to_file(purge_subbed(rows))
+            save_to_file(purge_subbed(filtered))
             popup.destroy()
+            show_done()
 
-        file = filedialog.askopenfilename(
-            title="Location of openPO",
-            initialdir=r"%USER%\Desktop",
-            filetypes=[("Excel", "*.xlsx")],
-        )
-
-        if basename(file) == "rsCorpOpenPO.xlsx":
-            workbook = load_workbook(copy_file(file), read_only=True)
-            sheet = workbook["rsCorpOpenPO"]
-            popup = tk.Toplevel()
-            t = Thread(target=hunter_task, args=(popup,))
-            t.start()
+        data = get_data()
+        popup = tk.Toplevel()
+        t = Thread(target=hunter_task, args=(popup,data))
+        t.start()
 
 
 class MainPage(tk.Frame):
@@ -633,6 +667,7 @@ class EditPartPage(tk.Frame):
 
         :param updated_info: Dictionary with desired changes
         """
+        
         self.part_info = tuple(value.get() for key, value in updated_info.items())
         if update_part(self.info_type_var.get().lower(), self.part_info) == "Done":
             messagebox.showinfo(
@@ -1109,7 +1144,6 @@ class BrowsePage(tk.Frame):
             _templst = self.results_tv.item(child)["values"]
             _templst.insert(0, self.results_tv.item(child)["text"])
             rows.append(_templst)
-        print(rows)
         csv_writer("exported_list.csv", rows)
 
     def handle_filter_change(self, *args):
