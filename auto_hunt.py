@@ -8,7 +8,7 @@ from os.path import join as pathjoin
 from backend import search_part, convert_to_dict
 
 
-def get_list(part_type):
+def get_type_parts(part_type):
     """
     Returns a list of part numbers based on part_type.
 
@@ -23,11 +23,19 @@ def get_list(part_type):
             data.append(row[0])
     return data
 
+def get_all_parts():
+    """
+    Returns a dictionary with part types as keys and a part numbers as values.
+    """
+    all_parts = {}
+    for part_type in ["HDD", "MEM", "CPU"]:
+        all_parts[part_type] = get_type_parts(part_type)
+        
+    return all_parts
 
 def copy_file(original):
     """
-    Copies the openPO report to the local HDD and returns that
-    copy.
+    Copies the openPO report to the local HDD and returns the path of the copy.
 
     :param original: Path of the file to be copied
     :return: Path for the new local copy
@@ -37,8 +45,7 @@ def copy_file(original):
     copyfile(original, local_copy)
     return local_copy
 
-
-def get_type(part_num):
+def get_type(part_num, all_parts):
     """
     Checks if part_num is in all_hdds, all_mem, or all_cpus and
     returns a sring indicating which is true.
@@ -46,19 +53,15 @@ def get_type(part_num):
     :param part_num: Part number
     :return: "HDD", "MEM", or "CPU"
     """
-    all_hdds = get_list("HDD")
-    all_mem = get_list("MEM")
-    all_cpus = get_list("CPU")
 
-    if part_num in all_hdds:
+    if part_num in all_parts["HDD"]:
         return "HDD"
-    elif part_num in all_mem:
+    elif part_num in all_parts["MEM"]:
         return "MEM"
-    elif part_num in all_cpus:
+    elif part_num in all_parts["CPU"]:
         return "CPU"
     else:
         return None
-
 
 def purge_subbed(part_nums):
     """
@@ -82,7 +85,6 @@ def purge_subbed(part_nums):
                 clean_list.append(part_num)
 
     return clean_list
-
 
 def save_to_file(part_nums):
     """
