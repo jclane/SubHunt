@@ -317,12 +317,6 @@ class AddPartPage(tk.Frame):
         self.brand_drop = tk.OptionMenu(self.middle_frame, self.brand_var, *self.brands)
         self.brand_drop.grid(column=1, row=2, sticky="EW")
 
-        self.description_label = tk.Label(self.middle_frame, text="Description: ")
-        self.description_label.grid(column=0, row=3)
-        self.description_box = tk.Entry(self.middle_frame)
-        self.entries.append(self.description_box)
-        self.description_box.grid(column=1, row=3)
-
         self.do_not_sub_var = tk.BooleanVar()
         self.do_not_sub_var.set(False)
         self.do_not_sub_check = tk.Checkbutton(
@@ -357,6 +351,11 @@ class AddPartPage(tk.Frame):
         Displays GUI for the user to add a record to the "hdd"
         table.
         """
+        self.description_label = tk.Label(self.middle_frame, text="Description: ")
+        self.description_label.grid(column=0, row=3)
+        self.description_box = tk.Entry(self.middle_frame)
+        self.entries.append(self.description_box)
+        self.description_box.grid(column=1, row=3)
         self.connector_label = tk.Label(self.type_specific_frame, text="Connector: ")
         self.connector_label.grid(column=0, row=0)
         self.connector_var = tk.StringVar()
@@ -450,6 +449,11 @@ class AddPartPage(tk.Frame):
         Displays GUI for the user to add a record to the "mem"
         table.
         """
+        self.description_label = tk.Label(self.middle_frame, text="Description: ")
+        self.description_label.grid(column=0, row=3)
+        self.description_box = tk.Entry(self.middle_frame)
+        self.entries.append(self.description_box)
+        self.description_box.grid(column=1, row=3)
         self.speed_label = tk.Label(self.type_specific_frame, text="Speed: ")
         self.speed_label.grid(column=0, row=0)
         self.speed_box = tk.Entry(self.type_specific_frame)
@@ -477,6 +481,11 @@ class AddPartPage(tk.Frame):
         """
         Displays GUI for the user to add a record to the "cpu" table.
         """
+        self.description_label = tk.Label(self.middle_frame, text="Description: ")
+        self.description_label.grid(column=0, row=3)
+        self.description_box = tk.Entry(self.middle_frame)
+        self.entries.append(self.description_box)
+        self.description_box.grid(column=1, row=3)
         self.oem_label = tk.Label(self.type_specific_frame, text="OEM Part Number: ")
         self.oem_label.grid(column=0, row=0)
 
@@ -560,6 +569,7 @@ class AddPartPage(tk.Frame):
         all widgets are removed from sub_frame and appropriate
         method is called.
         """
+        self.entries = []
         clear_widgets(self.type_specific_frame)
         if self.part_types_var.get() in ["HDD", "SSD", "SSHD"]:
             self.storage()
