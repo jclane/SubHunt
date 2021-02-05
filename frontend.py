@@ -290,33 +290,6 @@ class AddPartPage(tk.Frame):
         )
         self.part_type_drop.grid(column=1, row=0, sticky="EW")
 
-        self.part_num_label = tk.Label(self.middle_frame, text="Part Number: ")
-        self.part_num_label.grid(column=0, row=1)
-        self.part_num_box = tk.Entry(self.middle_frame)
-        self.part_num_box.grid(column=1, row=1, sticky="EW")
-
-        self.brand_label = tk.Label(self.middle_frame, text="Brand: ")
-        self.brand_label.grid(column=0, row=2)
-        self.brand_var = tk.StringVar()
-        self.string_vars.append(self.brand_var)
-
-        self.brand_var.set("Acer")
-        self.brands = (
-            "Acer",
-            "Asus",
-            "CVO",
-            "Dell",
-            "Hewlett Packard",
-            "Lenovo",
-            "MSI",
-            "Razer",
-            "Samsung",
-            "Sony",
-            "Toshiba",
-        )
-        self.brand_drop = tk.OptionMenu(self.middle_frame, self.brand_var, *self.brands)
-        self.brand_drop.grid(column=1, row=2, sticky="EW")
-
         self.do_not_sub_var = tk.BooleanVar()
         self.do_not_sub_var.set(False)
         self.do_not_sub_check = tk.Checkbutton(
@@ -351,6 +324,32 @@ class AddPartPage(tk.Frame):
         Displays GUI for the user to add a record to the "hdd"
         table.
         """
+        self.part_num_label = tk.Label(self.middle_frame, text="Part Number: ")
+        self.part_num_label.grid(column=0, row=1)
+        self.part_num_box = tk.Entry(self.middle_frame)
+        self.part_num_box.grid(column=1, row=1, sticky="EW")
+
+        self.brand_label = tk.Label(self.middle_frame, text="Brand: ")
+        self.brand_label.grid(column=0, row=2)
+        self.brand_var = tk.StringVar()
+        self.string_vars.append(self.brand_var)
+
+        self.brand_var.set("Acer")
+        self.brands = (
+            "Acer",
+            "Asus",
+            "CVO",
+            "Dell",
+            "Hewlett Packard",
+            "Lenovo",
+            "MSI",
+            "Razer",
+            "Samsung",
+            "Sony",
+            "Toshiba",
+        )
+        self.brand_drop = tk.OptionMenu(self.middle_frame, self.brand_var, *self.brands)
+        self.brand_drop.grid(column=1, row=2, sticky="EW")
         self.description_label = tk.Label(self.middle_frame, text="Description: ")
         self.description_label.grid(column=0, row=3)
         self.description_box = tk.Entry(self.middle_frame)
@@ -449,6 +448,32 @@ class AddPartPage(tk.Frame):
         Displays GUI for the user to add a record to the "mem"
         table.
         """
+        self.part_num_label = tk.Label(self.middle_frame, text="Part Number: ")
+        self.part_num_label.grid(column=0, row=1)
+        self.part_num_box = tk.Entry(self.middle_frame)
+        self.part_num_box.grid(column=1, row=1, sticky="EW")
+
+        self.brand_label = tk.Label(self.middle_frame, text="Brand: ")
+        self.brand_label.grid(column=0, row=2)
+        self.brand_var = tk.StringVar()
+        self.string_vars.append(self.brand_var)
+
+        self.brand_var.set("Acer")
+        self.brands = (
+            "Acer",
+            "Asus",
+            "CVO",
+            "Dell",
+            "Hewlett Packard",
+            "Lenovo",
+            "MSI",
+            "Razer",
+            "Samsung",
+            "Sony",
+            "Toshiba",
+        )
+        self.brand_drop = tk.OptionMenu(self.middle_frame, self.brand_var, *self.brands)
+        self.brand_drop.grid(column=1, row=2, sticky="EW")
         self.description_label = tk.Label(self.middle_frame, text="Description: ")
         self.description_label.grid(column=0, row=3)
         self.description_box = tk.Entry(self.middle_frame)
@@ -474,13 +499,39 @@ class AddPartPage(tk.Frame):
         self.capacity_label = tk.Label(self.type_specific_frame, text="Capacity (GB): ")
         self.capacity_label.grid(column=0, row=2)
         self.capacity_box = tk.Entry(self.type_specific_frame)
-        self.string_vars.append(self.capacity_box)
+        self.entries.append(self.capacity_box)
         self.capacity_box.grid(column=1, row=2)
 
     def cpu(self):
         """
         Displays GUI for the user to add a record to the "cpu" table.
         """
+        self.part_num_label = tk.Label(self.middle_frame, text="Part Number: ")
+        self.part_num_label.grid(column=0, row=1)
+        self.part_num_box = tk.Entry(self.middle_frame)
+        self.part_num_box.grid(column=1, row=1, sticky="EW")
+
+        self.brand_label = tk.Label(self.middle_frame, text="Brand: ")
+        self.brand_label.grid(column=0, row=2)
+        self.brand_var = tk.StringVar()
+        self.string_vars.append(self.brand_var)
+
+        self.brand_var.set("Acer")
+        self.brands = (
+            "Acer",
+            "Asus",
+            "CVO",
+            "Dell",
+            "Hewlett Packard",
+            "Lenovo",
+            "MSI",
+            "Razer",
+            "Samsung",
+            "Sony",
+            "Toshiba",
+        )
+        self.brand_drop = tk.OptionMenu(self.middle_frame, self.brand_var, *self.brands)
+        self.brand_drop.grid(column=1, row=2, sticky="EW")
         self.description_label = tk.Label(self.middle_frame, text="Description: ")
         self.description_label.grid(column=0, row=3)
         self.description_box = tk.Entry(self.middle_frame)
@@ -570,6 +621,7 @@ class AddPartPage(tk.Frame):
         method is called.
         """
         self.entries = []
+        self.string_vars = []
         clear_widgets(self.type_specific_frame)
         if self.part_types_var.get() in ["HDD", "SSD", "SSHD"]:
             self.storage()
