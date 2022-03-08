@@ -1,5 +1,6 @@
 """Displays the GUI for SubHunt."""
 import tkinter as tk
+from csv import DictReader as csv_DictReader
 from csv import reader as csvreader
 from tkinter import ttk, messagebox, filedialog
 from tkinter.ttk import Treeview, Scrollbar
@@ -8,7 +9,12 @@ from openpyxl import load_workbook
 from threading import Thread
 from collections import OrderedDict
 
-from auto_hunt import copy_file, purge_subbed, get_type, save_to_file, get_all_parts
+import tkinter.font as tkFont
+
+import csv
+
+#from auto_hunt import copy_file, purge_subbed, get_type, save_to_file, get_all_parts, open_file
+from auto_hunt import auto_hunt
 from backend import (
     remove_table,
     return_table,
@@ -45,7 +51,8 @@ class Main(tk.Tk):
         self.file_menu = tk.Menu(self.menu, tearoff=False)
         self.file_menu.add_command(label="Import", command=self.import_list)
         self.file_menu.add_command(
-            label="Purge Records", command=lambda: self.show_frame("PurgePage")
+            label="Purge Records", stat="disabled",
+            command=lambda: self.show_frame("PurgePage")
         )
         self.menu.add_cascade(label="File", menu=self.file_menu)
 
@@ -75,7 +82,10 @@ class Main(tk.Tk):
             label="Browse", command=lambda: self.show_frame("BrowsePage")
         )
         self.search_menu.add_separator()
-        self.search_menu.add_command(label="Auto Hunt", command=self.automate_sub_hunt)
+        menu_auto_hunt = tk.Menu(self.search_menu, tearoff=False)
+        menu_auto_hunt.add_command(label="Hunt OpenPO", command=lambda x="po": auto_hunt(x))
+        menu_auto_hunt.add_command(label="Hunt PartsPlanning", command=lambda x="pp": auto_hunt(x))
+        self.search_menu.add_cascade(label="Auto-Hunt", menu=menu_auto_hunt)
         self.menu.add_cascade(label="Search", menu=self.search_menu)
 
         self.help_menu = tk.Menu(self.menu, tearoff=False)
@@ -123,102 +133,6 @@ class Main(tk.Tk):
 
         if file != "":
             import_from_csv(file)
-
-    def automate_sub_hunt(self):
-        """
-        Open a dialog window to pick file for auto sub hunting then
-        completes the auto-hunt.
-        """
-
-        def validate(row, all_parts):
-            repair_locs = ["1320", "622", "630", "68", "67",
-                            "69", "610", "615", "618", "624"]
-            brands = ("ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV",
-                      "MSS", "RCM", "RZR", "SAC", "SYC", "TSC",)
-
-            if row[0] not in repair_locs:
-                return False
-            if get_type(row[31], all_parts) is None:
-                return False
-            if row[21] not in brands:
-                return False
-            if row[14] is None:
-                return False
-            if row[15] != row[14]:
-                return False
-                
-            return True
-
-        def filter_data(data, all_parts):         
-            filtered = [
-                [row[31], get_type(row[31], all_parts), row[14], row[13]]
-                for row in data if validate(row, all_parts)
-            ]
-            
-            return filtered
-
-        def get_data():
-            """
-            Opens a menu to select the openPO report text file.  
-            The file is then copied and the contents returned as a 
-            list of rows.
-            """
-            file = filedialog.askopenfilename(
-                title="Location of openPO",
-                initialdir=r"%USER%\Desktop",
-                filetypes=[("Plain Text", "*.txt"), ("CSV", "*.csv"),],
-            )            
-            
-            if file:
-                copied = copy_file(file)
-            
-            data = []
-            with open(file, "r") as csvfile:
-                reader = csvreader(csvfile, delimiter="\t")
-                for row in reader:
-                    data.append(row)
-            
-            return data
- 
-        def show_done():
-            """
-            Popup window informing the user that autohunt has finished.
-            """
-            popup = tk.Tk()
-            popup.wm_title("!")
-            label = ttk.Label(popup, text="DONE!", font=("Helvetica", 10))
-            label.pack(side="top", fill="x", pady=10)
-            B1 = ttk.Button(popup, text="Okay", command = popup.destroy)
-            B1.pack()
-            popup.mainloop()
- 
-        def hunter_task(popup, data):
-            """
-            Pulls the desired orders from the open orders report and
-            displays an indeterminate progress bar to let the user know
-            that the application is not frozen.  Once done the progress
-            bar window is destroyed, purge_subbed is called and the
-            data is saved to and Excel file.
-
-            :param popup: Window to display the prograss bar in
-            """
-            tk.Label(popup, text="Working...\n").grid(row=0, column=0)
-            progress_bar = ttk.Progressbar(popup, mode="indeterminate")
-            progress_bar.grid(row=1, column=0)
-            progress_bar.start(50)
-            popup.pack_slaves()
-            all_parts = get_all_parts()           
-            filtered = filter_data(data[1:], all_parts)           
-
-            save_to_file(purge_subbed(filtered))
-            popup.destroy()
-            show_done()
-
-        data = get_data()
-        popup = tk.Toplevel()
-        t = Thread(target=hunter_task, args=(popup,data))
-        t.start()
-
 
 class MainPage(tk.Frame):
     """Initial page.  Is blank."""
@@ -695,9 +609,13 @@ class EditPartPage(tk.Frame):
         self.sub_frame.grid(column=0, row=1, sticky="EW")
         self.updated_part_dict = OrderedDict()
 
+        self.entries = []
+        self.string_vars = []
+
         self.info_search_label = tk.Label(self.container, text="Enter Part Number: ")
         self.info_search_label.grid(column=0, row=0, sticky="EW")
         self.info_search_box = tk.Entry(self.container, text="")
+        self.entries.append(self.info_search_box)
         self.info_search_box.grid(column=1, row=0, sticky="EW")
 
         self.info_type_var = tk.StringVar()
@@ -722,6 +640,8 @@ class EditPartPage(tk.Frame):
         )
         self.save_button.grid(column=4, row=0, sticky="EW")
 
+        self.info_type_var.trace("w", self.change_dropdown)
+
     def save_it(self, updated_info):
         """
         Creates of tuple of the dictionary passed to then uses that
@@ -729,7 +649,7 @@ class EditPartPage(tk.Frame):
 
         :param updated_info: Dictionary with desired changes
         """
-        
+
         self.part_info = tuple(value.get() for key, value in updated_info.items())
         if update_part(self.info_type_var.get().lower(), self.part_info) == "Done":
             messagebox.showinfo(
@@ -757,10 +677,12 @@ class EditPartPage(tk.Frame):
                     _.grid(column=1, row=row_num, sticky="W")
                     _.insert(0, self.part_info[key])
                     _.config(state="disabled")
+                    self.entries.append(_)
                     self.updated_part_dict["part_num"] = _
                 elif key == "brand":
                     self.brand_var = tk.StringVar()
                     self.brand_var.set(self.part_info[key])
+                    self.string_vars.append(self.brand_var)
                     self.brands = (
                         "Acer",
                         "Asus",
@@ -792,6 +714,7 @@ class EditPartPage(tk.Frame):
                         connectors = ("SO-DIMM", "UDIMM")
                     connector_var = tk.StringVar()
                     connector_var.set(self.part_info[key])
+                    self.string_vars.append(connector_var)
 
                     tk.OptionMenu(self.sub_frame, connector_var, *connectors).grid(
                         column=1, row=row_num, sticky="W"
@@ -800,6 +723,7 @@ class EditPartPage(tk.Frame):
                 elif key == "type":
                     self.type_var = tk.StringVar()
                     self.type_var.set(self.part_info[key])
+                    self.string_vars.append(self.type_var)
                     self.types = ("HDD", "SSD", "SSHD")
                     tk.OptionMenu(self.sub_frame, self.type_var, *self.types).grid(
                         column=1, row=row_num, sticky="W"
@@ -809,6 +733,7 @@ class EditPartPage(tk.Frame):
                     _ = tk.Entry(self.sub_frame)
                     _.grid(column=1, row=row_num, sticky="W")
                     _.insert(0, self.part_info[key])
+                    self.entries.append(_)
                     self.updated_part_dict[key] = _
 
                 tk.Label(self.sub_frame, text=key).grid(
@@ -820,6 +745,23 @@ class EditPartPage(tk.Frame):
             messagebox.showerror(
                 "Invalid Entry", part_num + " does not exist in the database."
             )
+
+    def clear_fields(self):
+        for entry in self.entries:
+            entry.delete(0, tk.END)
+        for str_var in self.string_vars:
+            str_var.set("")
+
+    def change_dropdown(self, *args):
+        """
+        When a part type/table is selected from the dropdown
+        all widgets are removed from sub_frame and appropriate
+        method is called.
+        """
+        self.entries = []
+        self.string_vars = []
+        self.updated_part_dict = OrderedDict()
+        clear_widgets(self.sub_frame)
 
 
 class SearchPage(tk.Frame):
@@ -1112,6 +1054,7 @@ class BrowsePage(tk.Frame):
 
     def __init__(self, parent, controller):
         self.specs = []
+        self.def_font = tk.font.nametofont("TkDefaultFont")
         tk.Frame.__init__(self, parent)
         self.controller = controller
 
@@ -1138,6 +1081,15 @@ class BrowsePage(tk.Frame):
         self.table_var.trace("w", self.handle_table_change)
         self.table_var.set("HDD")
 
+    def get_min_column_width(self, col_values, max_length=-1):
+        longest_value_length = len(max(col_values, key=len))
+        if max_length < 0:
+            return longest_value_length
+        return longest_value_length if longest_value_length < max_length else max_length
+
+    def str_length_to_pixels(self, string):
+        return sum(map(lambda c: self.def_font.measure(c), string))
+
     def fill_table(self, parts):
         """
         Displays list of a parts from a table in a spreadsheet
@@ -1151,11 +1103,15 @@ class BrowsePage(tk.Frame):
 
         self.headers = return_column_names(self.table_var.get())
         self.results_tv["columns"] = self.headers
-
+        padding = self.def_font.measure("0") + 10
         for header in enumerate(self.headers):
-            self.results_tv.column("#" + str(header[0]), width=len(header[1]) * 10)
+            values = return_possible_values(self.table_var.get(), header[1])
+            width = self.str_length_to_pixels(max(values, key=len)) if "description" not in header[1] else self.str_length_to_pixels("description")
+            padding = int(self.str_length_to_pixels(header[1]))
+            self.results_tv.column("#" + str(header[0]), width=width + padding)
             self.results_tv.heading("#" + str(header[0]), text=header[1])
 
+        # hide empty column at end
         self.results_tv.column("#" + str(len(self.headers)), minwidth=0, width=0, stretch=False)
 
         for part in parts:
@@ -1184,23 +1140,42 @@ class BrowsePage(tk.Frame):
         :param table:  Table in sqlite3 db
         """
         self.var_dict = {}
+        self.buttons = {}
         columns = return_column_names(table)
         for column_name in enumerate(columns):
             self.var_dict[column_name[1]] = tk.StringVar()
             self.var_dict[column_name[1]].set(column_name[1])
-            _ = tk.OptionMenu(
-                self.filter_frame,
-                self.var_dict[column_name[1]],
-                *return_possible_values(table, column_name[1])
-            )
-            _.configure(width=len(column_name[1]))
-            _.grid(column=column_name[0], row=0, sticky="EW")
-            self.var_dict[column_name[1]].trace("w", self.handle_filter_change)
-        tk.Button(self.type_frame, text="Export", command=self.save_to_file).grid(
+            values = return_possible_values(table, column_name[1])
+            tk.Label(self.filter_frame, text=column_name[1]).grid(column=column_name[0], row=0)
+
+            _ = ttk.Combobox(self.filter_frame, textvariable=column_name[1],
+                             name=column_name[1], validate="key", values=values)
+            post_cmd = (self.register(self.post_command), _._name)
+            width = self.get_min_column_width(values, len(column_name[1])) + len(column_name[1])
+            _.configure(postcommand=post_cmd, width=width)
+            _.bind("<<ComboboxSelected>>", self.handle_filter_change)
+            _.grid(column=column_name[0], row=1, sticky="E")
+            self.buttons[column_name[1]] = (_, values)
+
+        tk.Button(self.type_frame, text="Export", command=self.export_to_CSV).grid(
             column=2, row=0
         )
 
-    def save_to_file(self):
+    def post_command(self, caller_name):
+        caller = self.buttons[caller_name][0]
+        values = self.buttons[caller_name][1]
+        matching_values = []
+        text_to_match = caller.get()
+        for value in values:
+            if (not text_to_match or
+                value.startswith(text_to_match) or
+                text_to_match.startswith(value)):
+                matching_values.append(value)
+
+        caller.configure(values=matching_values)
+
+
+    def export_to_CSV(self):
         rows = [self.headers]
         for child in self.results_tv.get_children():
             _templst = self.results_tv.item(child)["values"]
@@ -1210,9 +1185,12 @@ class BrowsePage(tk.Frame):
 
     def handle_filter_change(self, *args):
         multi_filter = {}
-        for k, v in self.var_dict.items():
-            if k != v.get():
-                multi_filter[k] = v.get()
+
+        for k, v in self.buttons.items():
+            column_header = k
+            button_value = v[0].get()
+            if button_value:
+                multi_filter[column_header] = button_value
         parts = filter_columns(self.table_var.get(), multi_filter)
         self.results_tv.delete(*self.results_tv.get_children())
         for part in parts:

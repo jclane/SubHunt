@@ -1,145 +1,181 @@
-from openpyxl import load_workbook, Workbook
-import datetime as dt
 from shutil import copyfile
-from csv import reader as csvreader
-from csv import writer as csvwriter
-from os.path import join as pathjoin
-
-from backend import search_part, convert_to_dict
+from tkinter import filedialog
 
 
-def get_type_parts(part_type):
-    """
-    Returns a list of part numbers based on part_type.
+def auto_hunt(hunt_type):
 
-    :param part_type: String indicating 'HDD', 'MEM', or 'CPU'
-    :return: List of part numbers from csv file
-    """
-    file = pathjoin("parts_in_sp", "all" + part_type + ".csv")
-    data = []
-    with open(file, "r") as csvfile:
-        reader = csvreader(csvfile)
-        for row in reader:
-            data.append(row[0])
-    return data
+    def copy_file(original):
+        """
+        Copies file to the appropriate location and returns the path of the copy.
 
-def get_all_parts():
-    """
-    Returns a dictionary with part types as keys and a part numbers as values.
-    """
-    all_parts = {}
-    for part_type in ["HDD", "MEM", "CPU"]:
-        all_parts[part_type] = get_type_parts(part_type)
-        
-    return all_parts
+        :param original: Path of the file to be copied
+        :return: Path for the new local copy
+        """
+        report = "Parts Planning" if basename(original).startswith("Parts Planning") else "openPO"
+        subdir = f"{report} Reports"
+        filename = pathjoin(f"{subdir}", report + f" {str(dt.date.today())}{Path(original).suffix}")
+        local_copy = copyfile(original, pathjoin(r".\reports", f"{filename}"))
+        return local_copy
 
-def copy_file(original):
-    """
-    Copies the openPO report to the local HDD and returns the path of the copy.
+    def copy_and_return_file(initdir):
+        """
+        Opens file dialog box at 'initdir'. Once a file is selected 'copy_file'
+        is called and the path to the copy is returned or 'None'.
 
-    :param original: Path of the file to be copied
-    :return: Path for the new local copy
-    """
-    local_copy = pathjoin(r"openPO Reports", "openPO " + str(dt.date.today()) + ".xlsx")
+        :param original: Path to the file to be copied
+        :return: Path to the copy or 'None'
+        """
+        file = filedialog.askopenfilename(
+            title=f"Select desired report",
+            initialdir=initdir,
+            filetypes=[("CSV", "*.csv"),("Excel", "*.xlsx")],
+        )
+        if file:
+            file_copy = copy_file(file)
+        else:
+            return None
 
-    copyfile(original, local_copy)
-    return local_copy
+        return file_copy
 
-def get_type(part_num, all_parts):
-    """
-    Checks if part_num is in all_hdds, all_mem, or all_cpus and
-    returns a sring indicating which is true.
+    def read_po(path):
+        """
+        This reads the 'Open PO' report with the *.csv file type and returns a list of part
+        objects.
 
-    :param part_num: Part number
-    :return: "HDD", "MEM", or "CPU"
-    """
+        :param path: Path to the file to open
+        :return: List of part objects
+        """
+        data = []
+        with open(file_copy, "r") as csvfile:
+            reader = csv_DictReader(csvfile)
+            for row in reader:
+                new_row = {}
+                for k,v in row.items():
+                    new_row[k.replace("ï»¿", "").replace("txt", "").replace(" ", "").replace("#", "", 1)] = v
+                data.append(new_row)
 
-    if part_num in all_parts["HDD"]:
-        return "HDD"
-    elif part_num in all_parts["MEM"]:
-        return "MEM"
-    elif part_num in all_parts["CPU"]:
-        return "CPU"
-    else:
+        return data
+
+    def read_pp(path):
+        """
+        This reads the 'Parts Planning' excel report and returns a list of part
+        objects.
+
+        NOTE: Part class string 'PROC' must be change to 'CPU' for this to work
+        with the existing database.
+
+        :param path: Path to the file to open
+        :return: List of part objects
+        """
+        data = []
+        try:
+            wb = load_workbook(filename=file_copy, read_only=True)
+            ws = wb["All_Combined"]
+            for row in ws.iter_rows(min_row=6):
+                relevant = (row[0].value, row[2].value,
+                            row[3].value, row[31].value,)
+                if all(relevant) and not relevant[2] == "-":
+                    pclass = relevant[1]
+                    if pclass == "PROC":
+                        pclass = "CPU"
+                    data.append({"pn":relevant[0],
+                                 "class":pclass,
+                                 "brand":relevant[2]})
+        finally:
+            wb.close()
+            
+        return data
+
+    def read_file(hunt_type, path):
+        """
+        Calls either 'read_po' or read_pp' based on 'hunt_type' and returns
+        list of part objects or 'None'.
+
+        :param hunt_type: String indicating which function to callable
+        :param path: Path to the report to read
+        :return: A list or part objects or 'None'
+        """
+        if hunt_type == "po":
+            return read_po(path)
+        if hunt_type == "pp":
+            return read_pp(path)
+
         return None
 
-def purge_subbed(part_nums):
-    """
-    Loops through part_nums and checks if the part number is
-    in the database and if not, adds it to clean_list. Also
-    calls convert_to_dict to check if part number has a sub.
-    If not, the part is added to the clean_list.
-
-    :param part_nums: List of part numbers to be checked
-    :return: List of parts that are not in the databse or have no
-        sub relation setup
-    """
-    clean_list = []
-    for part_num in part_nums:
-        if (search_part(part_num[1].lower(), part_num[0]) is None and
-                part_num not in clean_list):
-            clean_list.append(part_num)
-        elif (search_part(part_num[1].lower(), part_num[0]) is not None):
-            part_dict = convert_to_dict(part_num[1].lower(), part_num[0])
-            if (part_dict["subbed"] == "FALSE" and part_dict["do_not_sub"] == "FALSE"):
-                clean_list.append(part_num)
-
-    return clean_list
-
-def save_to_file(part_nums):
-    """
-    Creates a workbook object and builds the 'Needs Sub' and
-    'Non-Warr Orders' sheets then saves the workbook as an
-    Excel file.
-
-    :param part_nums: List of part numbers to be saved
-    :return: 'Done'
-    """
-
-    def build_sheets():
+    def get_data(hunt_type):
         """
-        Populates the sheets with values based on the data provided
-        in the part_nums list.
+        Sets 'initdir' based on 'hunt_type' and calls 'copy_and_return_file'
+        to copy the desired report and return the path to the copy. Afterwards,
+        the copy is read and contents returned.
+
+        :param hunt_type: String indicating report type
+        :return: List of objects representing parts
         """
-        parts_seen = []
-        add_to_sheet2 = []
-        # Populating cell data for 'Needs Sub' sheet
-        headings = ["Part Num", "Type"]
-        for heading in enumerate(headings):
-            worksheet1.cell(row=1, column=heading[0] + 1,
-                            value=heading[1])
-        row_num = 2
-        for row in part_nums:
-            if row[2] != "MFG Warranty":
-                add_to_sheet2.append(row)
-            if row[0] not in parts_seen:
-                for part_data in enumerate(row[:2]):
-                    worksheet1.cell(row=row_num, column=part_data[0] + 1,
-                                    value=part_data[1])
-                parts_seen.append(row[0])
-                row_num += 1
-            else:
-                continue
-        # Populating cell data for 'Non-Warr Orders' sheet
-        if len(add_to_sheet2):
-            headings = ["Part Num", "Type", "Warr", "SO"]
-            for heading in enumerate(headings):
-                worksheet2.cell(row=1, column=heading[0] + 1,
-                                value=heading[1])
-            for row in enumerate(add_to_sheet2):
-                for element in enumerate(row[1]):
-                    worksheet2.cell(row=row[0] + 2, column=element[0] + 1,
-                                    value=element[1])
+        if hunt_type == "po":
+            initdir = r"[REDACTED]"
+        elif hunt_type == "pp":
+            initdir = r"[REDACTED]"
+        else:
+            initdir = r"."
+    
+        path = copy_and_return_file(initdir)
+        data = read_file(hunt_type, path)
 
-    path = pathjoin(
-        r"hunts",
-        str(dt.date.today()) + " hunt.xlsx"
-        )
-    workbook = Workbook()
-    worksheet1 = workbook.active
-    worksheet1.title = "Needs Sub"
-    worksheet2 = workbook.create_sheet("Non-Warr Orders")
-    build_sheets()
+        return data
 
-    workbook.save(path)
-    return "Done"
+    def validate(data):
+        """
+        Validates that 'data' has acceptable values for coverage, location,
+        brand, and class.
+
+        :param data: Object representing a partition
+        :return: Boolean true/false
+        """
+        coverage = ["MFG WARRANTY", "PSP"]
+        classes = ["MEM", "HDD", "SSD", "PROC", "CPU"]
+        repair_locs = ["REDACTED"]
+        brands = ["ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV",
+                  "MSS", "RCM", "RZR", "SAC", "SYC", "TSC"]
+
+        if data["class"].upper().strip() not in classes: return False
+        if data["brand"].upper().strip() not in brands: return False
+        if data["labor_coverage"].upper().strip() not in coverage: return False
+
+        return True
+
+    def filter_data(parts):
+        """
+        Removes invalid elements from 'parts'.
+
+        :param parts: List of part objects
+        :return: A filtered list
+        """
+        return list(filter(lambda p: validate(p), parts))
+
+    def hunter_task(popup, data, hunt_type):
+        """
+        Pulls the desired orders from the open orders report and
+        displays an indeterminate progress bar to let the user know
+        that the application is not frozen.  Once done the progress
+        bar window is destroyed, purge_subbed is called and the
+        data is saved to and Excel file.
+
+        :param popup: Window to display the prograss bar in
+        """
+        tk.Label(popup, text="Working...\n").grid(row=0, column=0)
+        progress_bar = ttk.Progressbar(popup, mode="indeterminate")
+        progress_bar.grid(row=1, column=0)
+        progress_bar.start(50)
+        popup.pack_slaves()
+        all_parts = get_all_parts()
+
+        filtered = filter_data(data[1:], all_parts)
+
+        path = save_to_file(hunt_type, purge_subbed(filtered))
+        popup.destroy()
+        show_done(path)
+
+    data = get_data(hunt_type)
+    popup = tk.Toplevel()
+    t = Thread(target=hunter_task, args=(popup,data,hunt_type))
+    t.start()
