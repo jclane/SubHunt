@@ -3,7 +3,10 @@ from os.path import basename
 from os.path import join as pathjoin
 from pathlib import Path
 from shutil import copyfile
+from threading import Thread
 from tkinter import filedialog
+
+from openpyxl import load_workbook, Workbook
 
 
 def auto_hunt(hunt_type):
@@ -17,7 +20,7 @@ def auto_hunt(hunt_type):
         """
         report = "Parts Planning" if basename(original).startswith("Parts Planning") else "openPO"
         subdir = f"{report} Reports"
-        filename = pathjoin(f"{subdir}", report + f" {str(dt.date.today())}{Path(original).suffix}")
+        filename = pathjoin(f"{subdir}", report + f" {str(date.today())}{Path(original).suffix}")
         local_copy = copyfile(original, pathjoin(r".\reports", f"{filename}"))
         return local_copy
 
@@ -122,9 +125,9 @@ def auto_hunt(hunt_type):
         :return: List of objects representing parts
         """
         if hunt_type == "po":
-            initdir = r"[REDACTED]"
+            initdir = r"\\bnacorp01sf\star_actuate_reporting\Service Center Management Reports\Purchasing\Open Purchse Orders Corporate"
         elif hunt_type == "pp":
-            initdir = r"[REDACTED]"
+            initdir = r"\\vsp021320\gsc-pub\Supply Chain Planning\Stock Replenishment Rpts"
         else:
             initdir = r"."
     
@@ -143,7 +146,8 @@ def auto_hunt(hunt_type):
         """
         coverage = ["MFG WARRANTY", "PSP"]
         classes = ["MEM", "HDD", "SSD", "PROC", "CPU"]
-        repair_locs = ["REDACTED"]
+        repair_locs = ["1320", "622", "630", "68", "67",
+                       "69", "610", "615", "618", "624"]
         brands = ["ACE", "ALI", "ASU", "DEL", "GWY", "HEW", "LNV",
                   "MSS", "RCM", "RZR", "SAC", "SYC", "TSC"]
 
@@ -162,7 +166,7 @@ def auto_hunt(hunt_type):
         """
         return list(filter(lambda p: validate(p), parts))
 
-    def hunter_task(popup, data, hunt_type):
+    def hunter_task(data, hunt_type):
         """
         Pulls the desired orders from the open orders report and
         displays an indeterminate progress bar to let the user know
@@ -171,21 +175,13 @@ def auto_hunt(hunt_type):
         data is saved to and Excel file.
 
         :param popup: Window to display the prograss bar in
+        :param data: List of part objects
+        :param hunt_type: String indicating report type
         """
-        tk.Label(popup, text="Working...\n").grid(row=0, column=0)
-        progress_bar = ttk.Progressbar(popup, mode="indeterminate")
-        progress_bar.grid(row=1, column=0)
-        progress_bar.start(50)
-        popup.pack_slaves()
-        all_parts = get_all_parts()
-
         filtered = filter_data(data[1:], all_parts)
-
         path = save_to_file(hunt_type, purge_subbed(filtered))
-        popup.destroy()
         show_done(path)
 
     data = get_data(hunt_type)
-    popup = tk.Toplevel()
-    t = Thread(target=hunter_task, args=(popup,data,hunt_type))
+    t = Thread(target=hunter_task, args=(data,hunt_type))
     t.start()

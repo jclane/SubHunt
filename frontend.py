@@ -83,8 +83,8 @@ class Main(tk.Tk):
         )
         self.search_menu.add_separator()
         menu_auto_hunt = tk.Menu(self.search_menu, tearoff=False)
-        menu_auto_hunt.add_command(label="Hunt OpenPO", command=lambda x="po": auto_hunt(x))
-        menu_auto_hunt.add_command(label="Hunt PartsPlanning", command=lambda x="pp": auto_hunt(x))
+        menu_auto_hunt.add_command(label="Hunt OpenPO", command=lambda x="po": self.auto_hunt(x))
+        menu_auto_hunt.add_command(label="Hunt PartsPlanning", command=lambda x="pp": self.auto_hunt(x))
         self.search_menu.add_cascade(label="Auto-Hunt", menu=menu_auto_hunt)
         self.menu.add_cascade(label="Search", menu=self.search_menu)
 
@@ -133,6 +133,20 @@ class Main(tk.Tk):
 
         if file != "":
             import_from_csv(file)
+            
+    def auto_hunt(self, hunt_type):
+        """
+        Displays an indeterminate progress bar to let the user know the
+        program hasn't frozen while 'auto_hunt' is called.
+        """
+        popup = tk.Toplevel()
+        tk.Label(popup, text="Working...\n").grid(row=0, column=0)
+        progress_bar = ttk.Progressbar(popup, mode="indeterminate")
+        progress_bar.grid(row=1, column=0)
+        progress_bar.start(50)
+        popup.pack_slaves()
+        auto_hunt(hunt_type)
+        popup.destroy()
 
 class MainPage(tk.Frame):
     """Initial page.  Is blank."""
