@@ -46,13 +46,16 @@ def auto_hunt(hunt_type):
         :return: List of part objects
         """
         data = []
-        with open(file_copy, "r") as csvfile:
-            reader = csv_DictReader(csvfile)
-            for row in reader:
-                new_row = {}
-                for k,v in row.items():
-                    new_row[k.replace("ï»¿", "").replace("txt", "").replace(" ", "").replace("#", "", 1)] = v
-                data.append(new_row)
+        try:
+            with open(file_copy, "r") as csvfile:
+                reader = csv_DictReader(csvfile)
+                for row in reader:
+                    new_row = {}
+                    for k,v in row.items():
+                        new_row[k.replace("ï»¿", "").replace("txt", "").replace(" ", "").replace("#", "", 1)] = v
+                    data.append(new_row)
+        except IOError as e:
+            print(e)
 
         return data
 
@@ -70,19 +73,22 @@ def auto_hunt(hunt_type):
         data = []
         try:
             wb = load_workbook(filename=file_copy, read_only=True)
-            ws = wb["All_Combined"]
-            for row in ws.iter_rows(min_row=6):
-                relevant = (row[0].value, row[2].value,
-                            row[3].value, row[31].value,)
-                if all(relevant) and not relevant[2] == "-":
-                    pclass = relevant[1]
-                    if pclass == "PROC":
-                        pclass = "CPU"
-                    data.append({"pn":relevant[0],
-                                 "class":pclass,
-                                 "brand":relevant[2]})
-        finally:
-            wb.close()
+            try:
+                ws = wb["All_Combined"]
+                for row in ws.iter_rows(min_row=6):
+                    relevant = (row[0].value, row[2].value,
+                                row[3].value, row[31].value,)
+                    if all(relevant) and not relevant[2] == "-":
+                        pclass = relevant[1]
+                        if pclass == "PROC":
+                            pclass = "CPU"
+                        data.append({"pn":relevant[0],
+                                     "class":pclass,
+                                     "brand":relevant[2]})
+            finally:
+                wb.close()
+        except IOError as e:
+            print(e)
             
         return data
 
