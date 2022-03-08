@@ -51,7 +51,7 @@ def auto_hunt(hunt_type):
         """
         data = []
         try:
-            with open(file_copy, "r") as csvfile:
+            with open(path, "r") as csvfile:
                 reader = csv_DictReader(csvfile)
                 for row in reader:
                     new_row = {}
@@ -76,7 +76,7 @@ def auto_hunt(hunt_type):
         """
         data = []
         try:
-            wb = load_workbook(filename=file_copy, read_only=True)
+            wb = load_workbook(filename=path, read_only=True)
             try:
                 ws = wb["All_Combined"]
                 for row in ws.iter_rows(min_row=6):
