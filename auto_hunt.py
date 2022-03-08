@@ -91,7 +91,8 @@ def auto_hunt(hunt_type):
                             pclass = "CPU"
                         data.append({"pn":relevant[0],
                                      "class":pclass,
-                                     "brand":relevant[2]})
+                                     "brand":relevant[2],
+                                     "labor_coverage":"MFG WARRANTY"})
             finally:
                 wb.close()
         except IOError as e:
