@@ -357,7 +357,7 @@ def list_subs(table, part_num):
                     part_dict["physical_size"],
                     part_dict["connector"],
                     part_dict["ssd_capacity"],
-                    part_dict["interface"][:1] + "%",
+                    part_dict["interface"],
                 )
             else:
                 sql = (
